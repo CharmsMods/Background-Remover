@@ -8,6 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Custom CSS -->
     <link rel="stylesheet" href="styles.css">
+    <!-- JavaScript Files -->
+    <script type="module" src="js/app.js"></script>
 </head>
 <body class="min-h-screen">
     <!-- Message Box - Top Left Corner -->
@@ -34,38 +36,64 @@
     <!-- Header -->
     <header class="bg-black border-b border-white py-6">
         <div class="container mx-auto px-6">
-            <h1 class="text-3xl font-bold text-center text-cyan-400">Image Color Fader</h1>
+            <h1 class="text-3xl font-bold text-center text-cyan-400">Image Editor Pro</h1>
+            
+            <!-- Tab Navigation -->
+            <div class="flex overflow-x-auto pb-1 mb-6 scrollbar-hide">
+                <div class="flex space-x-2">
+                    <a href="#" data-tab="backgroundRemoval" class="tab-button active">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                        </svg>
+                        Background Removal
+                    </a>
+                    <a href="#" data-tab="imageEditing" class="tab-button">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1h1.5a1.5 1.5 0 011.5 1.5v2.5a1.5 1.5 0 01-1.5 1.5H15v1h2a2 2 0 012 2v8a2 2 0 01-2 2H7a2 2 0 01-2-2v-8a2 2 0 012-2h2v-1H7.5A1.5 1.5 0 016 8.5V6A1.5 1.5 0 017.5 4.5H9v-1a2 2 0 012-2z"></path>
+                        </svg>
+                        Image Editing
+                    </a>
+
+                </div>
+            </div>
         </div>
     </header>
 
     <!-- Main Content -->
     <div class="container mx-auto px-6 py-8 max-w-7xl">
-        <div class="grid grid-cols-1 xl:grid-cols-4 gap-8">
-            <!-- Image Section -->
-            <div class="xl:col-span-3">
-                <div class="bg-black rounded-lg p-6 border border-white">
-                    <!-- Upload Controls -->
-                    <div class="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
-                        <label for="imageUpload" class="custom-file-upload">
-                            Upload Image
-                        </label>
-                        <input type="file" id="imageUpload" accept="image/*">
-                        
-                        <!-- Quick Actions -->
-                        <div class="flex gap-3 flex-wrap">
-                            <button id="previewButton" class="action-btn bg-purple-600 hover:bg-purple-700 hidden">
-                                Preview
-                            </button>
-                            <button id="resetButton" class="action-btn bg-red-600 hover:bg-red-700">
-                                Reset
-                            </button>
-                            <button id="applyButton" class="action-btn bg-cyan-600 hover:bg-cyan-700">
-                                Apply
-                            </button>
-                            <button id="downloadButton" class="action-btn bg-green-600 hover:bg-green-700">
-                                Download
-                            </button>
-                        </div>
+        <!-- Background Removal Tab -->
+        <div id="backgroundRemovalTab" class="tab-content active">
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                <!-- Image Section -->
+                <div class="xl:col-span-2">
+                    <div class="bg-black rounded-lg p-6 border border-white">
+                        <!-- Upload Controls -->
+                        <div class="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
+                            <div class="flex gap-3">
+                                <label for="imageUpload" class="custom-file-upload">
+                                    Upload Image
+                                </label>
+                                <button id="uploadFromTabBg" class="custom-file-upload bg-purple-600 hover:bg-purple-700">
+                                    Upload from Tab
+                                </button>
+                            </div>
+                            <input type="file" id="imageUpload" accept="image/*">
+                            
+                            <!-- Quick Actions -->
+                            <div class="flex gap-3 flex-wrap">
+                                <button id="previewButton" class="action-btn bg-purple-600 hover:bg-purple-700 hidden">
+                                    Preview
+                                </button>
+                                <button id="resetButton" class="action-btn bg-red-600 hover:bg-red-700">
+                                    Reset
+                                </button>
+                                <button id="applyButton" class="action-btn bg-cyan-600 hover:bg-cyan-700">
+                                    Apply
+                                </button>
+                                <button id="downloadButton" class="action-btn bg-green-600 hover:bg-green-700">
+                                    Download
+                                </button>
+                            </div>
                     </div>
                     
                     <!-- Canvas Container -->
@@ -130,9 +158,12 @@
 
                     <!-- Opacity Control -->
                     <div class="control-section">
-                        <h3 class="control-title">Opacity</h3>
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="control-title mb-0">Opacity</h3>
+                            <span id="opacityValue" class="text-sm text-cyan-400 font-mono">0.0%</span>
+                        </div>
                         <div class="slider-container">
-                            <input type="range" id="opacitySlider" min="0" max="1" step="0.01" value="0" class="custom-slider">
+                            <input type="range" id="opacitySlider" min="0" max="1" step="0.005" value="0" class="custom-slider">
                             <div class="flex justify-between text-xs text-white opacity-70 mt-1">
                                 <span>0%</span>
                                 <span>100%</span>
@@ -149,8 +180,11 @@
                         </label>
                         <div id="toleranceSliderContainer" class="mt-3 pl-6">
                             <div class="slider-container">
-                                <label class="text-sm text-white mb-2 block">Strength</label>
-                                <input type="range" id="toleranceStrengthSlider" min="0" max="100" step="1" value="20" class="custom-slider">
+                                <div class="flex justify-between items-center mb-2">
+                                    <label class="text-sm text-white">Strength</label>
+                                    <span id="toleranceValue" class="text-sm text-cyan-400 font-mono">20.0</span>
+                                </div>
+                                <input type="range" id="toleranceStrengthSlider" min="0" max="100" step="0.5" value="20" class="custom-slider">
                                 <div class="flex justify-between text-xs text-white opacity-70 mt-1">
                                     <span>Low</span>
                                     <span>High</span>
@@ -168,8 +202,11 @@
                         </label>
                         <div id="smoothingSliderContainer" class="mt-3 pl-6">
                             <div class="slider-container">
-                                <label class="text-sm text-white mb-2 block">Factor</label>
-                                <input type="range" id="smoothingFactorSlider" min="0.1" max="1.0" step="0.05" value="1.0" class="custom-slider">
+                                <div class="flex justify-between items-center mb-2">
+                                    <label class="text-sm text-white">Factor</label>
+                                    <span id="smoothingValue" class="text-sm text-cyan-400 font-mono">1.00</span>
+                                </div>
+                                <input type="range" id="smoothingFactorSlider" min="0.1" max="1.0" step="0.025" value="1.0" class="custom-slider">
                                 <div class="flex justify-between text-xs text-white opacity-70 mt-1">
                                     <span>Sharp</span>
                                     <span>Smooth</span>
@@ -180,9 +217,324 @@
                 </div>
             </div>
         </div>
+        </div>
+
+        <!-- Image Editing Tab -->
+        <div id="imageEditingTab" class="tab-content hidden">
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                <!-- Image Section -->
+                <div class="xl:col-span-2">
+                    <div class="bg-black rounded-lg p-6 border border-white">
+                        <!-- Upload Controls -->
+                        <div class="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
+                            <div class="flex gap-3">
+                                <label for="imageUploadEdit" class="custom-file-upload">
+                                    Upload Image
+                                </label>
+                                <button id="uploadFromTabEdit" class="custom-file-upload bg-purple-600 hover:bg-purple-700">
+                                    Upload from Tab
+                                </button>
+                            </div>
+                            <input type="file" id="imageUploadEdit" accept="image/*">
+                            
+                            <!-- Quick Actions -->
+                            <div class="flex gap-3 flex-wrap">
+                                <button id="previewButtonEdit" class="action-btn bg-purple-600 hover:bg-purple-700 hidden">
+                                    Preview
+                                </button>
+                                <button id="resetButtonEdit" class="action-btn bg-red-600 hover:bg-red-700">
+                                    Reset
+                                </button>
+                                <button id="applyButtonEdit" class="action-btn bg-cyan-600 hover:bg-cyan-700">
+                                    Apply
+                                </button>
+                                <button id="downloadButtonEdit" class="action-btn bg-green-600 hover:bg-green-700">
+                                    Download
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Canvas Container -->
+                        <div class="canvas-container">
+                            <canvas id="imageCanvasEdit" class="w-full h-auto"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Controls Panel -->
+                <div class="xl:col-span-1">
+                    <div class="bg-black rounded-lg p-6 border border-white sticky top-8">
+                        <h2 class="text-xl font-semibold text-cyan-400 mb-6">Image Editing</h2>
+
+                        <!-- Preview Settings -->
+                        <div class="control-section">
+                            <h3 class="control-title">Preview</h3>
+                            <label class="toggle-container">
+                                <input type="checkbox" id="realtimePreviewToggleEdit" class="toggle-input" checked>
+                                <span class="toggle-label">Real-time Preview</span>
+                            </label>
+                            <p class="text-xs text-white opacity-70 mt-2">Updates preview as you adjust settings</p>
+                        </div>
+
+                        <!-- Image Info Display -->
+                        <div class="control-section">
+                            <h3 class="control-title">Image Info</h3>
+                            <div class="text-sm text-white space-y-1">
+                                <div>Resolution: <span id="resolutionDisplayEdit" class="text-cyan-400 font-mono">No image</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Color Adjustment Buttons -->
+                        <div class="control-section">
+                            <h3 class="control-title">Color Adjustments</h3>
+                            <div class="grid grid-cols-2 gap-3">
+                                <a href="#" data-tab="imageEditing" class="tab-button flex items-center justify-center px-4 py-3 rounded-lg transition-colors duration-200 hover:bg-gray-800 active:bg-gray-700">
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1h1.5a1.5 1.5 0 011.5 1.5v2.5a1.5 1.5 0 01-1.5 1.5H15v1h2a2 2 0 012 2v8a2 2 0 01-2 2H7a2 2 0 01-2-2v-8a2 2 0 012-2h2v-1H7.5A1.5 1.5 0 016 8.5V6A1.5 1.5 0 017.5 4.5H9v-1a2 2 0 012-2z"></path>
+                                    </svg>
+                                    Image Editing
+                                </a>
+                                <a href="#" data-tab="isolationSelection" class="tab-button flex items-center justify-center px-4 py-3 rounded-lg transition-colors duration-200 hover:bg-gray-800 active:bg-gray-700">
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.486M7 17h.01"></path>
+                                    </svg>
+                                    Isolation Selection
+                                </a>
+                                <button id="invertColorsBtn" class="action-btn bg-indigo-600 hover:bg-indigo-700 text-sm py-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                    Invert Colors
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Brightness Control -->
+                        <div class="control-section">
+                            <div class="flex justify-between items-center mb-2">
+                                <h3 class="control-title mb-0">Brightness</h3>
+                                <div class="flex items-center gap-2">
+                                    <button class="reset-slider-btn" data-slider="brightnessSlider" data-value="0">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                    <span id="brightnessValue" class="text-sm text-cyan-400 font-mono">0</span>
+                                </div>
+                            </div>
+                            <div class="slider-container">
+                                <input type="range" id="brightnessSlider" min="-100" max="100" step="1" value="0" class="custom-slider">
+                                <div class="flex justify-between text-xs text-white opacity-70 mt-1">
+                                    <span>Dark</span>
+                                    <span>Bright</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Contrast Control -->
+                        <div class="control-section">
+                            <div class="flex justify-between items-center mb-2">
+                                <h3 class="control-title mb-0">Contrast</h3>
+                                <div class="flex items-center gap-2">
+                                    <button class="reset-slider-btn" data-slider="contrastSlider" data-value="0">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                    <span id="contrastValue" class="text-sm text-cyan-400 font-mono">0</span>
+                                </div>
+                            </div>
+                            <div class="slider-container">
+                                <input type="range" id="contrastSlider" min="-100" max="100" step="1" value="0" class="custom-slider">
+                                <div class="flex justify-between text-xs text-white opacity-70 mt-1">
+                                    <span>Low</span>
+                                    <span>High</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Saturation Control -->
+                        <div class="control-section">
+                            <div class="flex justify-between items-center mb-2">
+                                <h3 class="control-title mb-0">Saturation</h3>
+                                <div class="flex items-center gap-2">
+                                    <button class="reset-slider-btn" data-slider="saturationSlider" data-value="0">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                    <span id="saturationValue" class="text-sm text-cyan-400 font-mono">0</span>
+                                </div>
+                            </div>
+                            <div class="slider-container">
+                                <input type="range" id="saturationSlider" min="-100" max="100" step="1" value="0" class="custom-slider">
+                                <div class="flex justify-between text-xs text-white opacity-70 mt-1">
+                                    <span>Gray</span>
+                                    <span>Vivid</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hue Control -->
+                        <div class="control-section">
+                            <div class="flex justify-between items-center mb-2">
+                                <h3 class="control-title mb-0">Hue</h3>
+                                <div class="flex items-center gap-2">
+                                    <button class="reset-slider-btn" data-slider="hueSlider" data-value="0">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                    <span id="hueValue" class="text-sm text-cyan-400 font-mono">0°</span>
+                                </div>
+                            </div>
+                            <div class="slider-container">
+                                <input type="range" id="hueSlider" min="-180" max="180" step="1" value="0" class="custom-slider">
+                                <div class="flex justify-between text-xs text-white opacity-70 mt-1">
+                                    <span>-180°</span>
+                                    <span>+180°</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Exposure Control -->
+                        <div class="control-section">
+                            <div class="flex justify-between items-center mb-2">
+                                <h3 class="control-title mb-0">Exposure</h3>
+                                <div class="flex items-center gap-2">
+                                    <button class="reset-slider-btn" data-slider="exposureSlider" data-value="0">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                    <span id="exposureValue" class="text-sm text-cyan-400 font-mono">0</span>
+                                </div>
+                            </div>
+                            <div class="slider-container">
+                                <input type="range" id="exposureSlider" min="-100" max="100" step="1" value="0" class="custom-slider">
+                                <div class="flex justify-between text-xs text-white opacity-70 mt-1">
+                                    <span>Under</span>
+                                    <span>Over</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Highlights/Shadows -->
+                        <div class="control-section">
+                            <div class="flex justify-between items-center mb-2">
+                                <h3 class="control-title mb-0">Highlights</h3>
+                                <div class="flex items-center gap-2">
+                                    <button class="reset-slider-btn" data-slider="highlightsSlider" data-value="0">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                    <span id="highlightsValue" class="text-sm text-cyan-400 font-mono">0</span>
+                                </div>
+                            </div>
+                            <div class="slider-container">
+                                <input type="range" id="highlightsSlider" min="-100" max="100" step="1" value="0" class="custom-slider">
+                                <div class="flex justify-between text-xs text-white opacity-70 mt-1">
+                                    <span>Dim</span>
+                                    <span>Bright</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="control-section">
+                            <div class="flex justify-between items-center mb-2">
+                                <h3 class="control-title mb-0">Shadows</h3>
+                                <div class="flex items-center gap-2">
+                                    <button class="reset-slider-btn" data-slider="shadowsSlider" data-value="0">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                    <span id="shadowsValue" class="text-sm text-cyan-400 font-mono">0</span>
+                                </div>
+                            </div>
+                            <div class="slider-container">
+                                <input type="range" id="shadowsSlider" min="-100" max="100" step="1" value="0" class="custom-slider">
+                                <div class="flex justify-between text-xs text-white opacity-70 mt-1">
+                                    <span>Dark</span>
+                                    <span>Light</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Upload Modal -->
+        <div id="tabUploadModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center">
+            <div class="bg-black border border-white rounded-lg p-6 max-w-md w-full mx-4">
+                <h3 class="text-xl font-semibold text-cyan-400 mb-4">Upload from Tab</h3>
+                <p class="text-white mb-4">Select a tab to import the current image from:</p>
+                <div class="space-y-3">
+                    <button id="importFromBackground" class="w-full p-3 bg-gray-800 hover:bg-gray-700 text-white rounded border border-gray-600 transition-colors">
+                        Background Removal Tab
+                    </button>
+                    <button id="importFromEditing" class="w-full p-3 bg-gray-800 hover:bg-gray-700 text-white rounded border border-gray-600 transition-colors">
+                        Image Editing Tab
+                    </button>
+                </div>
+                <div class="flex justify-end mt-6 gap-3">
+                    <button id="cancelTabUpload" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded transition-colors">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+
+
+
+        <!-- Memory Management Modal -->
+        <div id="memoryManagementModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center">
+            <div class="bg-black border border-white rounded-lg p-6 max-w-lg w-full mx-4">
+                <div class="flex items-center mb-4">
+                    <svg class="w-6 h-6 text-yellow-400 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                    </svg>
+                    <h3 class="text-xl font-semibold text-cyan-400">Memory Management</h3>
+                </div>
+                <p class="text-white mb-4">Image loaded successfully! To optimize performance and free up RAM, you can clear data from other tabs:</p>
+                
+                <div class="bg-gray-900 rounded-lg p-4 mb-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm text-gray-300">Current Memory Usage:</span>
+                        <span id="memoryUsageDisplay" class="text-sm text-cyan-400 font-mono">Calculating...</span>
+                    </div>
+                    <div class="w-full bg-gray-700 rounded-full h-2">
+                        <div id="memoryUsageBar" class="bg-gradient-to-r from-green-500 to-yellow-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="space-y-3 mb-6">
+                    <p class="text-sm text-gray-300 mb-3">Select tabs to clear (this will remove their image data and reset them):</p>
+                    <div id="memoryTabOptions" class="space-y-2">
+                        <!-- Tab options will be populated dynamically -->
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center">
+                    <button id="skipMemoryCleanup" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded transition-colors">
+                        Skip - Keep All Data
+                    </button>
+                    <div class="flex gap-3">
+                        <button id="clearSelectedTabs" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition-colors">
+                            Clear Selected Tabs
+                        </button>
+                        <button id="clearAllOtherTabs" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors">
+                            Clear All Other Tabs
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- JavaScript -->
-    <script src="script.js"></script>
+    <script type="module" src="js/app.js"></script>
 </body>
 </html>
