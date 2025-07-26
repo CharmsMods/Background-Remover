@@ -281,16 +281,39 @@ export class BackgroundRemovalProcessor {
             imageData = this.imageDataPool.pop();
             data = this.getArrayFromPool(this.originalImageData.data.length);
             data.set(this.originalImageData.data); // Copy original data
-            
         } else {
-            data[i + 3] = originalAlpha;
+            // Create new image data if pool is empty
+            imageData = ctx.createImageData(this.originalImageData.width, this.originalImageData.height);
+            data = new Uint8ClampedArray(this.originalImageData.data);
         }
-                }
-            );
-        };
         
-        // Start processing the first chunk
-        processNextChunk();
+        try {
+            // Process the image data
+            this.processor.processImageData(data, this.selectedColor, {
+                tolerance: parseFloat(DOM_ELEMENTS.toleranceStrengthSlider?.value) || 20,
+                smoothness: parseFloat(DOM_ELEMENTS.smoothingFactorSlider?.value) || 1.0,
+                isAntiAliasing: DOM_ELEMENTS.antiAliasingToggle?.checked !== false
+            });
+            
+            // Put the processed data back to the canvas
+            imageData.data.set(data);
+            ctx.putImageData(imageData, 0, 0);
+            
+            // Measure performance
+            const endTime = performance.now();
+            const processingTime = endTime - startTime;
+            this.trackPerformance(processingTime, forceUpdate);
+            
+            // Return the processed data to the pool for reuse
+            this.returnArrayToPool(data);
+            this.imageDataPool.push(imageData);
+            
+        } catch (error) {
+            console.error('Error applying filter:', error);
+            // Make sure to clean up in case of error
+            if (data) this.returnArrayToPool(data);
+            if (imageData) this.imageDataPool.push(imageData);
+        }
     }
     
     /**

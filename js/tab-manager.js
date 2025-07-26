@@ -55,22 +55,25 @@ export class TabManager {
         
         // Hide all tab contents and deactivate all buttons
         document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('active');
             content.classList.add('hidden');
         });
         
         document.querySelectorAll('[data-tab]').forEach(button => {
-            button.classList.remove('active');
-            button.classList.remove('bg-cyan-900');
+            button.classList.remove('active', 'bg-cyan-900');
         });
         
         // Show the selected tab and activate its button
         const tabElement = document.getElementById(tabState.tabId);
         if (tabElement) {
             tabElement.classList.remove('hidden');
+            tabElement.classList.add('active');
+            
             const activeButton = document.querySelector(`[data-tab="${tabName}"]`);
             if (activeButton) {
                 activeButton.classList.add('active', 'bg-cyan-900');
             }
+            
             this.currentTab = tabName;
             
             // Dispatch a custom event for any tab change listeners
