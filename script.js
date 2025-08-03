@@ -451,68 +451,41 @@ function applyFilter(forceUpdate = false) {
  */
 function resetImage() {
     if (originalImage.src) {
-        // Create a new image to ensure we get a clean copy
-        const img = new Image();
-        img.onload = function() {
-            // Update canvas dimensions to match the original image
-            imageCanvas.width = originalImage.width;
-            imageCanvas.height = originalImage.height;
-            
-            // Clear and redraw the original image
-            ctx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
-            ctx.drawImage(originalImage, 0, 0, imageCanvas.width, imageCanvas.height);
-            
-            // Re-capture the original pixel data
-            originalImageData = ctx.getImageData(0, 0, imageCanvas.width, imageCanvas.height);
-            
-            // Reset all controls and displays
-            resetControlsAndUI();
-            
-            showMessage('Image reset to original state.', 'success');
-        };
-        img.src = originalImage.src;
+        // Redraw original image onto canvas
+        ctx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+        ctx.drawImage(originalImage, 0, 0);
+        // Re-capture original pixel data
+        originalImageData = ctx.getImageData(0, 0, imageCanvas.width, imageCanvas.height);
+        // Reset controls and displays
+        selectedColor = null;
+        opacitySlider.value = 0;
+        toleranceToggle.checked = true;
+        toleranceSliderContainer.classList.remove('hidden');
+        toleranceStrengthSlider.value = 20; // Reset tolerance strength to new default
+        antiAliasingToggle.checked = true; // Enable anti-aliasing toggle by default
+        smoothingSliderContainer.classList.remove('hidden'); // Show smoothing slider
+        smoothingFactorSlider.value = 1.0; // Reset smoothing factor to maximum
+        colorReplacementToggle.checked = false; // Reset color replacement toggle
+        colorPickerContainer.classList.add('hidden'); // Hide color picker
+        replacementColorPicker.value = '#ff0000'; // Reset replacement color
+        replacementColorDisplay.textContent = '#FF0000'; // Reset display
+        // Reset preview settings
+        isRealtimePreviewEnabled = true;
+        realtimePreviewToggle.checked = true;
+        realtimePreviewToggle.classList.remove('disabled');
+        realtimePreviewToggle.parentElement.classList.remove('disabled');
+        previewButton.classList.add('hidden');
+        hidePerformanceWarning();
+        performanceCheckCount = 0;
+        totalProcessingTime = 0;
+        isPerformanceModeActive = false;
+        hexDisplay.textContent = '#FFFFFF';
+        rgbDisplay.textContent = 'rgb(255, 255, 255)';
+        // Keep resolution display - image is still loaded, just reset to original
+        colorSwatch.style.backgroundColor = '#FFFFFF';
+        showMessage('Image reset to original state.', 'info');
     } else {
         showMessage('No image loaded to reset.', 'info');
-    }
-}
-
-/**
- * Resets all controls and UI elements to their default state
- */
-function resetControlsAndUI() {
-    // Reset controls
-    selectedColor = null;
-    opacitySlider.value = 0;
-    toleranceToggle.checked = true;
-    toleranceSliderContainer.classList.remove('hidden');
-    toleranceStrengthSlider.value = 20;
-    antiAliasingToggle.checked = true;
-    smoothingSliderContainer.classList.remove('hidden');
-    smoothingFactorSlider.value = 1.0;
-    colorReplacementToggle.checked = false;
-    colorPickerContainer.classList.add('hidden');
-    replacementColorPicker.value = '#ff0000';
-    replacementColorDisplay.textContent = '#FF0000';
-    
-    // Reset preview settings
-    isRealtimePreviewEnabled = true;
-    realtimePreviewToggle.checked = true;
-    realtimePreviewToggle.classList.remove('disabled');
-    realtimePreviewToggle.parentElement.classList.remove('disabled');
-    previewButton.classList.add('hidden');
-    hidePerformanceWarning();
-    performanceCheckCount = 0;
-    totalProcessingTime = 0;
-    isPerformanceModeActive = false;
-    
-    // Reset displays
-    hexDisplay.textContent = '#FFFFFF';
-    rgbDisplay.textContent = 'rgb(255, 255, 255)';
-    colorSwatch.style.backgroundColor = '#FFFFFF';
-    
-    // Update resolution display
-    if (originalImage) {
-        resolutionDisplay.textContent = `${originalImage.width} × ${originalImage.height}`;
     }
 }
 
@@ -525,23 +498,38 @@ function applyChanges() {
         return;
     }
 
-    // Create a new image from the current canvas state
-    const dataUrl = imageCanvas.toDataURL('image/png');
-    const img = new Image();
-    img.onload = function() {
-        // Update the original image and its data
-        originalImage = img;
-        ctx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
-        ctx.drawImage(originalImage, 0, 0);
-        originalImageData = ctx.getImageData(0, 0, imageCanvas.width, imageCanvas.height);
-        
-        // Reset controls
-        selectedColor = null;
-        opacitySlider.value = 0;
-        
-        showMessage('Changes applied! You can now make additional edits to the modified image.', 'success');
-    };
-    img.src = dataUrl;
+    // Get the current image data from the canvas
+    originalImageData = ctx.getImageData(0, 0, imageCanvas.width, imageCanvas.height);
+
+    // Reset controls and displays for new selection
+    selectedColor = null;
+    opacitySlider.value = 0;
+    toleranceToggle.checked = true;
+    toleranceSliderContainer.classList.remove('hidden');
+    toleranceStrengthSlider.value = 20; // Reset tolerance strength to new default
+    antiAliasingToggle.checked = true; // Enable anti-aliasing toggle by default
+    smoothingSliderContainer.classList.remove('hidden'); // Show smoothing slider
+    smoothingFactorSlider.value = 1.0; // Reset smoothing factor to maximum
+    colorReplacementToggle.checked = false; // Reset color replacement toggle
+    colorPickerContainer.classList.add('hidden'); // Hide color picker
+    replacementColorPicker.value = '#ff0000'; // Reset replacement color
+    replacementColorDisplay.textContent = '#FF0000'; // Reset display
+    // Reset preview settings
+    isRealtimePreviewEnabled = true;
+    realtimePreviewToggle.checked = true;
+    realtimePreviewToggle.classList.remove('disabled');
+    realtimePreviewToggle.parentElement.classList.remove('disabled');
+    previewButton.classList.add('hidden');
+    hidePerformanceWarning();
+    performanceCheckCount = 0;
+    totalProcessingTime = 0;
+    isPerformanceModeActive = false;
+    hexDisplay.textContent = '#FFFFFF';
+    rgbDisplay.textContent = 'rgb(255, 255, 255)';
+    // Keep resolution display - image is still loaded, just applied changes
+    colorSwatch.style.backgroundColor = '#FFFFFF';
+
+    showMessage('Current edits applied! You can now pick a new color on the modified image.', 'success');
 }
 
 /**
@@ -553,13 +541,13 @@ function downloadImage() {
         return;
     }
 
-    const dataURL = imageCanvas.toDataURL('image/png');
-    const a = document.createElement('a');
-    a.href = dataURL;
-    a.download = 'edited-image.png';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    const dataURL = imageCanvas.toDataURL('image/png'); // Get data URL of the canvas content
+    const a = document.createElement('a'); // Create a temporary anchor element
+    a.href = dataURL; // Set the href to the data URL
+    a.download = 'edited-image.png'; // Set the download filename
+    document.body.appendChild(a); // Append to body (required for Firefox)
+    a.click(); // Programmatically click the anchor to trigger download
+    document.body.removeChild(a); // Remove the temporary anchor
     showMessage('Image downloaded successfully!', 'success');
 }
 
@@ -593,15 +581,7 @@ imageUpload.addEventListener('change', loadImage);
 imageCanvas.addEventListener('click', pickColor);
 opacitySlider.addEventListener('input', () => {
     if (isRealtimePreviewEnabled) {
-        // Always start from the original image when adjusting sliders
-        if (originalImageData) {
-            ctx.putImageData(new ImageData(
-                new Uint8ClampedArray(originalImageData.data),
-                originalImageData.width,
-                originalImageData.height
-            ), 0, 0);
-            applyFilter();
-        }
+        applyFilter();
     }
 }); // Use 'input' for real-time updates
 toleranceToggle.addEventListener('change', () => {
@@ -616,15 +596,7 @@ toleranceToggle.addEventListener('change', () => {
 });
 toleranceStrengthSlider.addEventListener('input', () => {
     if (isRealtimePreviewEnabled) {
-        // Always start from the original image when adjusting tolerance
-        if (originalImageData) {
-            ctx.putImageData(new ImageData(
-                new Uint8ClampedArray(originalImageData.data),
-                originalImageData.width,
-                originalImageData.height
-            ), 0, 0);
-            applyFilter();
-        }
+        applyFilter();
     }
 }); // New event listener for tolerance strength slider
 antiAliasingToggle.addEventListener('change', () => {
@@ -639,15 +611,7 @@ antiAliasingToggle.addEventListener('change', () => {
 });
 smoothingFactorSlider.addEventListener('input', () => {
     if (isRealtimePreviewEnabled) {
-        // Always start from the original image when adjusting smoothing
-        if (originalImageData) {
-            ctx.putImageData(new ImageData(
-                new Uint8ClampedArray(originalImageData.data),
-                originalImageData.width,
-                originalImageData.height
-            ), 0, 0);
-            applyFilter();
-        }
+        applyFilter();
     }
 }); // Apply filter when smoothing factor changes
 resetButton.addEventListener('click', resetImage);
@@ -674,15 +638,7 @@ colorReplacementToggle.addEventListener('change', () => {
 replacementColorPicker.addEventListener('input', () => {
     replacementColorDisplay.textContent = replacementColorPicker.value.toUpperCase();
     if (isRealtimePreviewEnabled) {
-        // Always start from the original image when changing replacement color
-        if (originalImageData) {
-            ctx.putImageData(new ImageData(
-                new Uint8ClampedArray(originalImageData.data),
-                originalImageData.width,
-                originalImageData.height
-            ), 0, 0);
-            applyFilter(); // Apply filter when replacement color changes
-        }
+        applyFilter(); // Apply filter when replacement color changes
     }
 });
 
