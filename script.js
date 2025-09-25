@@ -1,4 +1,4 @@
-// Image Color Fader - Main JavaScript File
+// Image Color Fader - Main JavaScript File (with Invert Selection)
 
 // Get DOM elements
 const imageUpload = document.getElementById('imageUpload');
@@ -8,6 +8,7 @@ const opacitySlider = document.getElementById('opacitySlider');
 const toleranceToggle = document.getElementById('toleranceToggle');
 const toleranceSliderContainer = document.getElementById('toleranceSliderContainer');
 const toleranceStrengthSlider = document.getElementById('toleranceStrengthSlider');
+const invertSelectionToggle = document.getElementById('invertSelectionToggle'); // New element
 const antiAliasingToggle = document.getElementById('antiAliasingToggle');
 const smoothingSliderContainer = document.getElementById('smoothingSliderContainer');
 const smoothingFactorSlider = document.getElementById('smoothingFactorSlider');
@@ -103,9 +104,8 @@ function colorDistance(color1, color2) {
     const db = color1.b - color2.b;
 
     // Perceptual weights: human eyes are more sensitive to green, less to blue
-    // These weights provide better color matching for tolerance
     const rWeight = 0.3;
-    const gWeight = 0.59; // Higher weight for green (human eye sensitivity)
+    const gWeight = 0.59;
     const bWeight = 0.11;
 
     return Math.sqrt(rWeight * dr * dr + gWeight * dg * dg + bWeight * db * db);
@@ -117,7 +117,6 @@ function colorDistance(color1, color2) {
  * @returns {number} - Gamma-corrected opacity value
  */
 function applyOpacityGamma(opacity) {
-    // Gamma of 2.2 makes opacity changes feel more natural
     return Math.pow(opacity, 2.2);
 }
 
@@ -128,17 +127,13 @@ function applyOpacityGamma(opacity) {
  * @returns {number} - Interpolated value with smooth falloff
  */
 function smoothInterpolation(t, smoothingFactor) {
-    // Clamp t to [0, 1]
     t = Math.max(0, Math.min(1, t));
 
     if (smoothingFactor <= 0.3) {
-        // Sharp transition - modified cosine
         return (1 - Math.cos(t * Math.PI)) / 2;
     } else if (smoothingFactor <= 0.7) {
-        // Smooth transition - smoothstep function
         return t * t * (3 - 2 * t);
     } else {
-        // Very smooth transition - smootherstep function
         return t * t * t * (t * (t * 6 - 15) + 10);
     }
 }
@@ -157,31 +152,27 @@ function loadImage(event) {
     reader.onload = function (e) {
         originalImage = new Image();
         originalImage.onload = function () {
-            // Set canvas dimensions to match image
             imageCanvas.width = originalImage.width;
             imageCanvas.height = originalImage.height;
-            // Update resolution display
-            // Update resolution display
             resolutionDisplay.textContent = `${originalImage.width} × ${originalImage.height}`;
-            // Draw the image
             ctx.drawImage(originalImage, 0, 0);
-            // Store the original pixel data
             originalImageData = ctx.getImageData(0, 0, imageCanvas.width, imageCanvas.height);
             showMessage('Image loaded successfully! Click on the image to pick a color.', 'success');
-            // Reset selected color and sliders
+            
+            // Reset controls
             selectedColor = null;
             opacitySlider.value = 0;
-            toleranceToggle.checked = true; // Enable tolerance toggle by default
-            toleranceSliderContainer.classList.remove('hidden'); // Show tolerance slider
-            toleranceStrengthSlider.value = 20; // Reset tolerance strength to new default
-            antiAliasingToggle.checked = true; // Enable anti-aliasing toggle by default
-            smoothingSliderContainer.classList.remove('hidden'); // Show smoothing slider
-            smoothingFactorSlider.value = 1.0; // Reset smoothing factor to maximum
-            colorReplacementToggle.checked = false; // Reset color replacement toggle
-            colorPickerContainer.classList.add('hidden'); // Hide color picker
-            replacementColorPicker.value = '#ff0000'; // Reset replacement color
-            replacementColorDisplay.textContent = '#FF0000'; // Reset display
-            // Reset preview settings
+            toleranceToggle.checked = true;
+            toleranceSliderContainer.classList.remove('hidden');
+            toleranceStrengthSlider.value = 20;
+            invertSelectionToggle.checked = false; // Reset new toggle
+            antiAliasingToggle.checked = true;
+            smoothingSliderContainer.classList.remove('hidden');
+            smoothingFactorSlider.value = 1.0;
+            colorReplacementToggle.checked = false;
+            colorPickerContainer.classList.add('hidden');
+            replacementColorPicker.value = '#ff0000';
+            replacementColorDisplay.textContent = '#FF0000';
             isRealtimePreviewEnabled = true;
             realtimePreviewToggle.checked = true;
             realtimePreviewToggle.classList.remove('disabled');
@@ -193,7 +184,6 @@ function loadImage(event) {
             isPerformanceModeActive = false;
             hexDisplay.textContent = '#FFFFFF';
             rgbDisplay.textContent = 'rgb(255, 255, 255)';
-            // Don't reset resolution display here - we want to keep it when image loads
             colorSwatch.style.backgroundColor = '#FFFFFF';
         };
         originalImage.onerror = function () {
@@ -217,67 +207,46 @@ function pickColor(event) {
         return;
     }
 
-    // Get mouse coordinates relative to the canvas
     const rect = imageCanvas.getBoundingClientRect();
     const scaleX = imageCanvas.width / rect.width;
     const scaleY = imageCanvas.height / rect.height;
     const x = Math.floor((event.clientX - rect.left) * scaleX);
     const y = Math.floor((event.clientY - rect.top) * scaleY);
 
-    // Get pixel data at the clicked point
     const pixel = ctx.getImageData(x, y, 1, 1).data;
     selectedColor = { r: pixel[0], g: pixel[1], b: pixel[2] };
 
-    // Display selected color
     hexDisplay.textContent = rgbToHex(selectedColor.r, selectedColor.g, selectedColor.b);
     rgbDisplay.textContent = `rgb(${selectedColor.r}, ${selectedColor.g}, ${selectedColor.b})`;
     colorSwatch.style.backgroundColor = `rgb(${selectedColor.r}, ${selectedColor.g}, ${selectedColor.b})`;
 
-    // Apply filter immediately after picking color (always show preview for color picking)
     applyFilter(true);
     showMessage('Color picked! Adjust opacity or toggle tolerance.', 'info');
 }
 
-/**
- * Shows the performance warning and disables real-time preview.
- */
 function showPerformanceWarning() {
-    console.log('showPerformanceWarning called, isPerformanceModeActive:', isPerformanceModeActive);
     if (!isPerformanceModeActive) {
-        console.log('Activating performance mode');
         isPerformanceModeActive = true;
         performanceWarning.classList.remove('hidden');
-
-        // Disable real-time preview
         isRealtimePreviewEnabled = false;
         realtimePreviewToggle.checked = false;
         realtimePreviewToggle.classList.add('disabled');
         realtimePreviewToggle.parentElement.classList.add('disabled');
-
-        // Show preview button
         previewButton.classList.remove('hidden');
-
         showMessage('Real-time preview disabled due to performance', 'info');
     }
 }
 
-/**
- * Hides the performance warning.
- */
 function hidePerformanceWarning() {
     performanceWarning.classList.add('hidden');
 }
 
-/**
- * Enables or disables real-time preview mode.
- */
 function toggleRealtimePreview(enabled) {
     isRealtimePreviewEnabled = enabled;
     if (enabled) {
         previewButton.classList.add('hidden');
         realtimePreviewToggle.classList.remove('disabled');
         realtimePreviewToggle.parentElement.classList.remove('disabled');
-        // Reset performance tracking when re-enabled
         performanceCheckCount = 0;
         totalProcessingTime = 0;
         isPerformanceModeActive = false;
@@ -291,15 +260,12 @@ function toggleRealtimePreview(enabled) {
  * @param {boolean} forceUpdate - Force update even if real-time preview is disabled
  */
 function applyFilter(forceUpdate = false) {
-    // Skip if real-time preview is disabled and not forced
     if (!isRealtimePreviewEnabled && !forceUpdate) {
         return;
     }
 
     const startTime = performance.now();
     if (!originalImageData || !selectedColor) {
-        // If no image or color selected, just draw the original image
-        // This case handles initial load or after reset/apply before new color pick
         if (originalImage.src) {
             ctx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
             ctx.drawImage(originalImage, 0, 0);
@@ -307,7 +273,6 @@ function applyFilter(forceUpdate = false) {
         return;
     }
 
-    // Create a mutable copy of the original image data
     const imageData = new ImageData(
         new Uint8ClampedArray(originalImageData.data),
         originalImageData.width,
@@ -316,160 +281,114 @@ function applyFilter(forceUpdate = false) {
     const data = imageData.data;
     const sliderVal = parseFloat(opacitySlider.value);
     const isToleranceMode = toleranceToggle.checked;
+    const isInverted = invertSelectionToggle.checked;
     const currentToleranceRadius = parseFloat(toleranceStrengthSlider.value);
     const isColorReplacement = colorReplacementToggle.checked;
     const replacementColor = isColorReplacement ? hexToRgb(replacementColorPicker.value) : null;
-
+    const isAntiAliasing = antiAliasingToggle.checked;
+    
     for (let i = 0; i < data.length; i += 4) {
         const r = data[i];
         const g = data[i + 1];
         const b = data[i + 2];
         const originalAlpha = originalImageData.data[i + 3];
 
+        const currentPixelColor = { r, g, b };
+        const distance = isToleranceMode 
+            ? colorDistance(selectedColor, currentPixelColor) 
+            : (r === selectedColor.r && g === selectedColor.g && b === selectedColor.b ? 0 : Infinity);
+        
+        let effectFactor = 0; // Represents how much of the effect (0 to 1) to apply.
+
         if (isToleranceMode) {
-            const currentPixelColor = { r, g, b };
-            const dist = colorDistance(selectedColor, currentPixelColor);
-            const isAntiAliasing = antiAliasingToggle.checked;
-
-            if (dist <= currentToleranceRadius) {
-                if (isColorReplacement) {
-                    // Color replacement mode
-                    if (isAntiAliasing) {
-                        // Smooth color blending
-                        const smoothingFactor = parseFloat(smoothingFactorSlider.value);
-                        const fadeZone = currentToleranceRadius * smoothingFactor;
-                        const coreZone = currentToleranceRadius - fadeZone;
-
-                        if (dist <= coreZone) {
-                            // Core zone: full color replacement
-                            data[i] = replacementColor.r;
-                            data[i + 1] = replacementColor.g;
-                            data[i + 2] = replacementColor.b;
-                            data[i + 3] = originalAlpha; // Keep original alpha
-                        } else {
-                            // Fade zone: blend between original and replacement color
-                            const fadeProgress = (dist - coreZone) / fadeZone;
-                            const smoothProgress = smoothInterpolation(fadeProgress, smoothingFactor);
-                            const blendFactor = 1 - smoothProgress; // 1 to 0 (smooth falloff)
-
-                            data[i] = Math.round(r + (replacementColor.r - r) * blendFactor);
-                            data[i + 1] = Math.round(g + (replacementColor.g - g) * blendFactor);
-                            data[i + 2] = Math.round(b + (replacementColor.b - b) * blendFactor);
-                            data[i + 3] = originalAlpha;
-                        }
+            if (distance <= currentToleranceRadius) {
+                // Pixel is INSIDE the tolerance radius
+                if (isAntiAliasing && currentToleranceRadius > 0) {
+                    const smoothingFactor = parseFloat(smoothingFactorSlider.value);
+                    const fadeZone = currentToleranceRadius * smoothingFactor;
+                    const coreZone = currentToleranceRadius - fadeZone;
+                    
+                    if (distance <= coreZone) {
+                        effectFactor = isInverted ? 0 : 1;
                     } else {
-                        // Sharp color replacement
-                        data[i] = replacementColor.r;
-                        data[i + 1] = replacementColor.g;
-                        data[i + 2] = replacementColor.b;
-                        data[i + 3] = originalAlpha;
+                        const fadeProgress = (distance - coreZone) / fadeZone;
+                        const smoothProgress = smoothInterpolation(fadeProgress, smoothingFactor);
+                        effectFactor = isInverted ? smoothProgress : (1 - smoothProgress);
                     }
                 } else {
-                    // Transparency mode (original behavior)
-                    if (isAntiAliasing) {
-                        const smoothingFactor = parseFloat(smoothingFactorSlider.value);
-                        const fadeZone = currentToleranceRadius * smoothingFactor;
-                        const coreZone = currentToleranceRadius - fadeZone;
-
-                        if (dist <= coreZone) {
-                            // Apply gamma-corrected opacity for more natural feel
-                            const correctedOpacity = applyOpacityGamma(sliderVal);
-                            data[i + 3] = originalAlpha * (1 - correctedOpacity);
-                        } else {
-                            const fadeProgress = (dist - coreZone) / fadeZone;
-                            const smoothProgress = smoothInterpolation(fadeProgress, smoothingFactor);
-                            const fadeFactor = 1 - smoothProgress;
-                            const correctedOpacity = applyOpacityGamma(sliderVal);
-                            data[i + 3] = originalAlpha * (1 - (correctedOpacity * fadeFactor));
-                        }
-                    } else {
-                        // Apply gamma-corrected opacity for sharp transitions too
-                        const correctedOpacity = applyOpacityGamma(sliderVal);
-                        data[i + 3] = originalAlpha * (1 - correctedOpacity);
-                    }
+                    effectFactor = isInverted ? 0 : 1;
                 }
             } else {
-                // Outside tolerance, keep original pixel
+                // Pixel is OUTSIDE the tolerance radius
+                effectFactor = isInverted ? 1 : 0;
+            }
+        } else { // No tolerance mode, only exact match
+            effectFactor = (distance === 0) ? (isInverted ? 0 : 1) : (isInverted ? 1 : 0);
+        }
+
+        // Apply the effect based on the calculated effectFactor
+        if (effectFactor > 0) {
+            if (isColorReplacement) {
+                data[i] = Math.round(r + (replacementColor.r - r) * effectFactor);
+                data[i + 1] = Math.round(g + (replacementColor.g - g) * effectFactor);
+                data[i + 2] = Math.round(b + (replacementColor.b - b) * effectFactor);
                 data[i + 3] = originalAlpha;
+            } else { // Transparency mode
+                const correctedOpacity = applyOpacityGamma(sliderVal);
+                data[i + 3] = originalAlpha * (1 - (correctedOpacity * effectFactor));
             }
         } else {
-            // No tolerance mode, only affect exact color match
-            if (r === selectedColor.r && g === selectedColor.g && b === selectedColor.b) {
-                if (isColorReplacement) {
-                    data[i] = replacementColor.r;
-                    data[i + 1] = replacementColor.g;
-                    data[i + 2] = replacementColor.b;
-                    data[i + 3] = originalAlpha;
-                } else {
-                    // Apply gamma-corrected opacity for exact matches too
-                    const correctedOpacity = applyOpacityGamma(sliderVal);
-                    data[i + 3] = originalAlpha * (1 - correctedOpacity);
-                }
-            } else {
-                data[i + 3] = originalAlpha;
-            }
+            // No effect, keep original pixel
+            data[i + 3] = originalAlpha;
         }
     }
 
     ctx.putImageData(imageData, 0, 0);
 
-    // Performance monitoring
     const endTime = performance.now();
     const processingTime = endTime - startTime;
 
-    // Track performance only for real-time updates
     if (isRealtimePreviewEnabled && !forceUpdate) {
         performanceCheckCount++;
         totalProcessingTime += processingTime;
 
-        // Debug logging
-        console.log(`Processing time: ${processingTime.toFixed(2)}ms (Count: ${performanceCheckCount})`);
-
-        // Check immediately if any single update takes too long
         if (processingTime > 750) {
-            console.log('Single update exceeded threshold, disabling real-time preview');
             showPerformanceWarning();
-        }
-        // Also check average over last 2 updates for consistency
-        else if (performanceCheckCount >= 2) {
+        } else if (performanceCheckCount >= 2) {
             const averageTime = totalProcessingTime / performanceCheckCount;
-            console.log(`Average processing time: ${averageTime.toFixed(2)}ms`);
-
             if (averageTime > 750) {
-                console.log('Average performance threshold exceeded, disabling real-time preview');
                 showPerformanceWarning();
             }
-            // Reset counters
             performanceCheckCount = 0;
             totalProcessingTime = 0;
         }
     }
 }
 
+
 /**
  * Resets the image to its original state.
  */
 function resetImage() {
     if (originalImage.src) {
-        // Redraw original image onto canvas
         ctx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
         ctx.drawImage(originalImage, 0, 0);
-        // Re-capture original pixel data
         originalImageData = ctx.getImageData(0, 0, imageCanvas.width, imageCanvas.height);
-        // Reset controls and displays
+        
+        // Reset controls
         selectedColor = null;
         opacitySlider.value = 0;
         toleranceToggle.checked = true;
         toleranceSliderContainer.classList.remove('hidden');
-        toleranceStrengthSlider.value = 20; // Reset tolerance strength to new default
-        antiAliasingToggle.checked = true; // Enable anti-aliasing toggle by default
-        smoothingSliderContainer.classList.remove('hidden'); // Show smoothing slider
-        smoothingFactorSlider.value = 1.0; // Reset smoothing factor to maximum
-        colorReplacementToggle.checked = false; // Reset color replacement toggle
-        colorPickerContainer.classList.add('hidden'); // Hide color picker
-        replacementColorPicker.value = '#ff0000'; // Reset replacement color
-        replacementColorDisplay.textContent = '#FF0000'; // Reset display
-        // Reset preview settings
+        toleranceStrengthSlider.value = 20;
+        invertSelectionToggle.checked = false; // Reset new toggle
+        antiAliasingToggle.checked = true;
+        smoothingSliderContainer.classList.remove('hidden');
+        smoothingFactorSlider.value = 1.0;
+        colorReplacementToggle.checked = false;
+        colorPickerContainer.classList.add('hidden');
+        replacementColorPicker.value = '#ff0000';
+        replacementColorDisplay.textContent = '#FF0000';
         isRealtimePreviewEnabled = true;
         realtimePreviewToggle.checked = true;
         realtimePreviewToggle.classList.remove('disabled');
@@ -481,7 +400,6 @@ function resetImage() {
         isPerformanceModeActive = false;
         hexDisplay.textContent = '#FFFFFF';
         rgbDisplay.textContent = 'rgb(255, 255, 255)';
-        // Keep resolution display - image is still loaded, just reset to original
         colorSwatch.style.backgroundColor = '#FFFFFF';
         showMessage('Image reset to original state.', 'info');
     } else {
@@ -498,23 +416,22 @@ function applyChanges() {
         return;
     }
 
-    // Get the current image data from the canvas
     originalImageData = ctx.getImageData(0, 0, imageCanvas.width, imageCanvas.height);
 
-    // Reset controls and displays for new selection
+    // Reset controls
     selectedColor = null;
     opacitySlider.value = 0;
     toleranceToggle.checked = true;
     toleranceSliderContainer.classList.remove('hidden');
-    toleranceStrengthSlider.value = 20; // Reset tolerance strength to new default
-    antiAliasingToggle.checked = true; // Enable anti-aliasing toggle by default
-    smoothingSliderContainer.classList.remove('hidden'); // Show smoothing slider
-    smoothingFactorSlider.value = 1.0; // Reset smoothing factor to maximum
-    colorReplacementToggle.checked = false; // Reset color replacement toggle
-    colorPickerContainer.classList.add('hidden'); // Hide color picker
-    replacementColorPicker.value = '#ff0000'; // Reset replacement color
-    replacementColorDisplay.textContent = '#FF0000'; // Reset display
-    // Reset preview settings
+    toleranceStrengthSlider.value = 20;
+    invertSelectionToggle.checked = false; // Reset new toggle
+    antiAliasingToggle.checked = true;
+    smoothingSliderContainer.classList.remove('hidden');
+    smoothingFactorSlider.value = 1.0;
+    colorReplacementToggle.checked = false;
+    colorPickerContainer.classList.add('hidden');
+    replacementColorPicker.value = '#ff0000';
+    replacementColorDisplay.textContent = '#FF0000';
     isRealtimePreviewEnabled = true;
     realtimePreviewToggle.checked = true;
     realtimePreviewToggle.classList.remove('disabled');
@@ -526,7 +443,6 @@ function applyChanges() {
     isPerformanceModeActive = false;
     hexDisplay.textContent = '#FFFFFF';
     rgbDisplay.textContent = 'rgb(255, 255, 255)';
-    // Keep resolution display - image is still loaded, just applied changes
     colorSwatch.style.backgroundColor = '#FFFFFF';
 
     showMessage('Current edits applied! You can now pick a new color on the modified image.', 'success');
@@ -541,13 +457,13 @@ function downloadImage() {
         return;
     }
 
-    const dataURL = imageCanvas.toDataURL('image/png'); // Get data URL of the canvas content
-    const a = document.createElement('a'); // Create a temporary anchor element
-    a.href = dataURL; // Set the href to the data URL
-    a.download = 'edited-image.png'; // Set the download filename
-    document.body.appendChild(a); // Append to body (required for Firefox)
-    a.click(); // Programmatically click the anchor to trigger download
-    document.body.removeChild(a); // Remove the temporary anchor
+    const dataURL = imageCanvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = dataURL;
+    a.download = 'edited-image.png';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
     showMessage('Image downloaded successfully!', 'success');
 }
 
@@ -561,7 +477,6 @@ async function copyToClipboard(text, type) {
         await navigator.clipboard.writeText(text);
         showMessage(`${type} value copied to clipboard!`, 'success');
     } catch (err) {
-        // Fallback for older browsers
         const textArea = document.createElement('textarea');
         textArea.value = text;
         document.body.appendChild(textArea);
@@ -579,94 +494,45 @@ async function copyToClipboard(text, type) {
 // Event Listeners
 imageUpload.addEventListener('change', loadImage);
 imageCanvas.addEventListener('click', pickColor);
-opacitySlider.addEventListener('input', () => {
-    if (isRealtimePreviewEnabled) {
-        applyFilter();
-    }
-}); // Use 'input' for real-time updates
+opacitySlider.addEventListener('input', () => { if (isRealtimePreviewEnabled) applyFilter(); });
 toleranceToggle.addEventListener('change', () => {
-    if (toleranceToggle.checked) {
-        toleranceSliderContainer.classList.remove('hidden');
-    } else {
-        toleranceSliderContainer.classList.add('hidden');
-    }
-    if (isRealtimePreviewEnabled) {
-        applyFilter(); // Apply filter when tolerance mode is toggled
-    }
+    toleranceSliderContainer.classList.toggle('hidden', !toleranceToggle.checked);
+    if (isRealtimePreviewEnabled) applyFilter();
 });
-toleranceStrengthSlider.addEventListener('input', () => {
-    if (isRealtimePreviewEnabled) {
-        applyFilter();
-    }
-}); // New event listener for tolerance strength slider
+toleranceStrengthSlider.addEventListener('input', () => { if (isRealtimePreviewEnabled) applyFilter(); });
+invertSelectionToggle.addEventListener('change', () => { if (isRealtimePreviewEnabled) applyFilter(); }); // New listener
 antiAliasingToggle.addEventListener('change', () => {
-    if (antiAliasingToggle.checked) {
-        smoothingSliderContainer.classList.remove('hidden');
-    } else {
-        smoothingSliderContainer.classList.add('hidden');
-    }
-    if (isRealtimePreviewEnabled) {
-        applyFilter(); // Apply filter when anti-aliasing is toggled
-    }
+    smoothingSliderContainer.classList.toggle('hidden', !antiAliasingToggle.checked);
+    if (isRealtimePreviewEnabled) applyFilter();
 });
-smoothingFactorSlider.addEventListener('input', () => {
-    if (isRealtimePreviewEnabled) {
-        applyFilter();
-    }
-}); // Apply filter when smoothing factor changes
+smoothingFactorSlider.addEventListener('input', () => { if (isRealtimePreviewEnabled) applyFilter(); });
 resetButton.addEventListener('click', resetImage);
 downloadButton.addEventListener('click', downloadImage);
-applyButton.addEventListener('click', applyChanges); // New event listener for apply button
-copyHexButton.addEventListener('click', () => {
-    const hexValue = hexDisplay.textContent;
-    copyToClipboard(hexValue, 'Hex');
-});
-copyRgbButton.addEventListener('click', () => {
-    const rgbValue = rgbDisplay.textContent;
-    copyToClipboard(rgbValue, 'RGB');
-});
+applyButton.addEventListener('click', applyChanges);
+copyHexButton.addEventListener('click', () => copyToClipboard(hexDisplay.textContent, 'Hex'));
+copyRgbButton.addEventListener('click', () => copyToClipboard(rgbDisplay.textContent, 'RGB'));
 colorReplacementToggle.addEventListener('change', () => {
-    if (colorReplacementToggle.checked) {
-        colorPickerContainer.classList.remove('hidden');
-    } else {
-        colorPickerContainer.classList.add('hidden');
-    }
-    if (isRealtimePreviewEnabled) {
-        applyFilter(); // Apply filter when color replacement is toggled
-    }
+    colorPickerContainer.classList.toggle('hidden', !colorReplacementToggle.checked);
+    if (isRealtimePreviewEnabled) applyFilter();
 });
 replacementColorPicker.addEventListener('input', () => {
     replacementColorDisplay.textContent = replacementColorPicker.value.toUpperCase();
-    if (isRealtimePreviewEnabled) {
-        applyFilter(); // Apply filter when replacement color changes
-    }
+    if (isRealtimePreviewEnabled) applyFilter();
 });
+realtimePreviewToggle.addEventListener('change', () => toggleRealtimePreview(realtimePreviewToggle.checked));
+previewButton.addEventListener('click', () => applyFilter(true));
+dismissWarning.addEventListener('click', () => hidePerformanceWarning());
 
-// Real-time preview toggle
-realtimePreviewToggle.addEventListener('change', () => {
-    toggleRealtimePreview(realtimePreviewToggle.checked);
-});
-
-// Preview button for manual updates
-previewButton.addEventListener('click', () => {
-    applyFilter(true); // Force update
-});
-
-// Dismiss performance warning
-dismissWarning.addEventListener('click', () => {
-    hidePerformanceWarning();
-});
-
-// Initial state: draw a placeholder if no image is loaded
+// Initial state
 window.onload = () => {
     if (!originalImage.src) {
         imageCanvas.width = 600;
         imageCanvas.height = 400;
-        ctx.fillStyle = '#e2e8f0'; // Light gray placeholder background
+        ctx.fillStyle = '#e2e8f0';
         ctx.fillRect(0, 0, imageCanvas.width, imageCanvas.height);
         ctx.font = '24px Inter';
         ctx.textAlign = 'center';
-        ctx.fillStyle = '#64748b'; // Darker gray text
+        ctx.fillStyle = '#64748b';
         ctx.fillText('Upload an image to get started', imageCanvas.width / 2, imageCanvas.height / 2);
     }
 };
