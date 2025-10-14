@@ -911,11 +911,16 @@ function processGifWithBrowserLoading(gifData, file) {
         frameSlider.max = gifFrameCount - 1;
         frameSlider.value = 0;
 
+        // For browser native loading, we only have one editable frame
+        // but we detected multiple frames in the GIF structure
         if (gifFrameCount > 1) {
-            frameSlider.disabled = false;
-            prevFrameButton.disabled = false;
-            nextFrameButton.disabled = false;
-            frameInfo.textContent = `Frame 1 of ${gifFrameCount} (Browser Preview)`;
+            // Show frame count but disable navigation for editing
+            frameSlider.disabled = true; // Disable slider for multi-frame GIFs
+            prevFrameButton.disabled = true;
+            nextFrameButton.disabled = true;
+            frameInfo.textContent = `Frame 1 of ${gifFrameCount} (Single Frame Editing Mode)`;
+
+            showMessage(`Multi-frame GIF detected (${gifFrameCount} frames) but editing in single-frame mode. Full frame navigation coming soon!`, 'info');
         } else {
             frameSlider.disabled = true;
             prevFrameButton.disabled = true;
@@ -1529,19 +1534,28 @@ function processGifFrames(gif, fileName) {
  * @param {number} frameIndex - The index of the frame to display.
  */
 function displayGifFrame(frameIndex) {
-    if (frameIndex < 0 || frameIndex >= gifFrameCount || gifFrames.length === 0) {
+    // Ensure frameIndex is valid (we only have one editable frame)
+    if (frameIndex < 0 || frameIndex >= gifFrames.length || gifFrames.length === 0) {
+        console.log('Invalid frame index:', frameIndex, 'Available frames:', gifFrames.length);
         return;
     }
 
     currentGifFrame = frameIndex;
     gifCanvas.width = gifWidth;
     gifCanvas.height = gifHeight;
-    gifCtx.putImageData(gifFrames[frameIndex], 0, 0);
+
+    // Only putImageData if we have a valid frame
+    if (gifFrames[frameIndex]) {
+        gifCtx.putImageData(gifFrames[frameIndex], 0, 0);
+    } else {
+        console.error('Frame data is undefined for index:', frameIndex);
+        return;
+    }
 
     frameSlider.value = frameIndex;
     frameInfo.textContent = `Frame ${frameIndex + 1} of ${gifFrameCount}`;
 
-    // Update navigation buttons
+    // Update navigation buttons (but they're disabled for multi-frame)
     prevFrameButton.disabled = frameIndex === 0;
     nextFrameButton.disabled = frameIndex === gifFrameCount - 1;
 }
@@ -1710,10 +1724,11 @@ function renderFullGif() {
         return;
     }
 
-    showMessage(`Processing all ${gifFrameCount} frames... This may take a moment for large GIFs.`, 'info');
+    showMessage(`Processing ${Math.min(gifFrameCount, gifFrames.length)} frames... This may take a moment for large GIFs.`, 'info');
 
-    // Process all frames with current settings
-    for (let frameIndex = 0; frameIndex < gifFrameCount; frameIndex++) {
+    // Process only the frames we actually have (max 1 for now)
+    const framesToProcess = Math.min(gifFrameCount, gifFrames.length);
+    for (let frameIndex = 0; frameIndex < framesToProcess; frameIndex++) {
         processGifFrame(frameIndex);
     }
 
@@ -1722,7 +1737,7 @@ function renderFullGif() {
     gifCanvas.height = gifHeight;
     gifCtx.putImageData(gifFrames[0], 0, 0);
 
-    showMessage(`Full GIF rendered successfully! ${gifFrameCount} frames processed. You can now download the animated GIF.`, 'success');
+    showMessage(`Full GIF rendered successfully! ${framesToProcess} frames processed. You can now download the edited frame(s).`, 'success');
 }
 
 /**
@@ -1730,11 +1745,18 @@ function renderFullGif() {
  * @param {number} frameIndex - The index of the frame to process.
  */
 function processGifFrame(frameIndex) {
-    if (frameIndex < 0 || frameIndex >= gifFrameCount) {
+    // We only have one editable frame (index 0)
+    if (frameIndex < 0 || frameIndex >= originalGifFrames.length) {
+        console.log('Invalid frame index for processing:', frameIndex, 'Available frames:', originalGifFrames.length);
         return;
     }
 
     const frameData = originalGifFrames[frameIndex];
+    if (!frameData) {
+        console.error('Frame data is undefined for processing at index:', frameIndex);
+        return;
+    }
+
     const imageData = new ImageData(
         new Uint8ClampedArray(frameData.data),
         frameData.width,
@@ -1813,60 +1835,30 @@ function downloadGif() {
         return;
     }
 
-    showMessage('Generating animated GIF for download...', 'info');
+    showMessage('Generating download...', 'info');
 
     try {
-        // Create a simple animated GIF using canvas frames
-        const frames = [];
-        const delays = [];
+        // We only have one processed frame, so download it as a single image
+        const frameCanvas = document.createElement('canvas');
+        frameCanvas.width = gifWidth;
+        frameCanvas.height = gifHeight;
+        const frameCtx = frameCanvas.getContext('2d');
 
-        // Collect all processed frames
-        for (let i = 0; i < gifFrameCount; i++) {
-            const frameCanvas = document.createElement('canvas');
-            frameCanvas.width = gifWidth;
-            frameCanvas.height = gifHeight;
-            const frameCtx = frameCanvas.getContext('2d');
+        // Draw the processed frame data
+        frameCtx.putImageData(gifFrames[0], 0, 0);
 
-            // Draw the processed frame data
-            frameCtx.putImageData(gifFrames[i], 0, 0);
-
-            frames.push(frameCanvas);
-            delays.push(gifFrameDelay > 0 ? gifFrameDelay : 100);
-        }
-
-        // For now, export as PNG sequence since native GIF creation is complex
-        // In a production app, you'd use a library like gif.js or implement LZW compression
-        if (frames.length === 1) {
-            // Single frame - export as PNG
-            frames[0].toBlob(function(blob) {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'edited-image.png';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                showMessage('Image downloaded successfully!', 'success');
-            }, 'image/png');
-        } else {
-            // Multi-frame - export as ZIP of PNGs for now
-            // In a real implementation, you'd create a proper animated GIF
-            showMessage('Multi-frame export as PNG sequence - animated GIF export coming soon!', 'info');
-
-            // For demonstration, just download the first frame
-            frames[0].toBlob(function(blob) {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'edited-frame-1.png';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                showMessage('First frame downloaded! Full animated export will be available soon.', 'success');
-            }, 'image/png');
-        }
+        // Download as PNG
+        frameCanvas.toBlob(function(blob) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'edited-gif-frame.png';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showMessage('Edited frame downloaded successfully!', 'success');
+        }, 'image/png');
 
     } catch (error) {
         console.error('Download error:', error);
