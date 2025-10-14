@@ -272,120 +272,21 @@ input[type="file"] {
     color: #93c5fd;
 }
 
-/* Tab system styling */
-.tab-button {
-    transition: all 0.3s ease;
-    border: 2px solid transparent;
+/* Responsive adjustments */
+@media (max-width: 1280px) {
+    .canvas-container {
+        margin-bottom: 2rem;
+    }
 }
 
-.tab-button.active {
-    background-color: #000000;
-    border-color: #06b6d4;
-    color: #06b6d4;
-}
+@media (max-width: 640px) {
+    .custom-file-upload {
+        width: 100%;
+        justify-content: center;
+        margin-bottom: 1rem;
+    }
 
-.tab-button:not(.active):hover {
-    background-color: #1f2937;
-    border-color: #06b6d4;
-    color: #06b6d4;
-}
-
-.editor-tab {
-    transition: opacity 0.3s ease;
-}
-
-.editor-tab.hidden {
-    display: none;
-    opacity: 0;
-}
-
-.editor-tab:not(.hidden) {
-    display: block;
-    opacity: 1;
-}
-
-/* Frame navigation styling */
-.frame-navigation {
-    background: #1f2937;
-    border-radius: 0.5rem;
-    padding: 1rem;
-    margin-bottom: 1.5rem;
-}
-
-.frame-nav-controls {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.frame-nav-button {
-    padding: 0.5rem 0.75rem;
-    background: #374151;
-    color: white;
-    border: 1px solid #4b5563;
-    border-radius: 0.375rem;
-    font-size: 0.875rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.frame-nav-button:hover:not(:disabled) {
-    background: #4b5563;
-}
-
-.frame-nav-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-#frameSlider {
-    flex: 1;
-    margin: 0 1rem;
-}
-
-/* Canvas container improvements */
-.canvas-container {
-    position: relative;
-    width: 100%;
-    max-width: 100%;
-    overflow: auto;
-    background: #1f2937;
-    border-radius: 0.5rem;
-}
-
-.canvas-container canvas {
-    display: block;
-    margin: 0 auto;
-    border-radius: 0.25rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    max-width: 100%;
-    height: auto;
-}
-
-/* Performance indicator */
-#gifPerformanceIndicator {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: rgba(239, 68, 68, 0.9);
-    color: white;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    display: none;
-}
-
-/* Loading indicator */
-#gifLoadingIndicator {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 12px 20px;
-    border-radius: 8px;
-    font-size: 14px;
-    display: none;
-    z-index: 10;
+    .action-btn {
+        flex: 1;
+    }
 }

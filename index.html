@@ -30,318 +30,141 @@
     <header class="bg-black border-b border-white py-6">
         <div class="container mx-auto px-6">
             <h1 class="text-3xl font-bold text-center text-cyan-400">Image Color Fader</h1>
-
-            <!-- Tab Navigation -->
-            <div class="flex justify-center mt-4">
-                <div class="bg-gray-900 rounded-lg p-1 border border-white">
-                    <button id="imageTab" class="tab-button active px-6 py-2 rounded-md text-cyan-400 bg-black border border-cyan-400">Image Editor</button>
-                    <button id="gifTab" class="tab-button px-6 py-2 rounded-md text-white hover:text-cyan-400">GIF Editor</button>
-                </div>
-            </div>
         </div>
     </header>
 
     <div class="container mx-auto px-6 py-8 max-w-7xl">
-        <!-- Image Editor Tab -->
-        <div id="imageEditorTab" class="editor-tab">
-            <div class="grid grid-cols-1 xl:grid-cols-4 gap-8">
-                <div class="xl:col-span-3">
-                    <div class="bg-black rounded-lg p-6 border border-white">
-                        <div class="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
-                            <label for="imageUpload" class="custom-file-upload">
-                                Upload Image
-                            </label>
-                            <input type="file" id="imageUpload" accept="image/*">
+        <div class="grid grid-cols-1 xl:grid-cols-4 gap-8">
+            <div class="xl:col-span-3">
+                <div class="bg-black rounded-lg p-6 border border-white">
+                    <div class="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
+                        <label for="imageUpload" class="custom-file-upload">
+                            Upload Image
+                        </label>
+                        <input type="file" id="imageUpload" accept="image/*">
 
-                            <div class="flex gap-3 flex-wrap">
-                                <button id="previewButton" class="action-btn bg-purple-600 hover:bg-purple-700 hidden">
-                                    Preview
-                                </button>
-                                <button id="resetButton" class="action-btn bg-red-600 hover:bg-red-700">
-                                    Reset
-                                </button>
-                                <button id="applyButton" class="action-btn bg-cyan-600 hover:bg-cyan-700">
-                                    Apply
-                                </button>
-                                <button id="downloadButton" class="action-btn bg-green-600 hover:bg-green-700">
-                                    Download
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="canvas-container">
-                            <canvas id="imageCanvas" class="w-full h-auto"></canvas>
+                        <div class="flex gap-3 flex-wrap">
+                            <button id="previewButton" class="action-btn bg-purple-600 hover:bg-purple-700 hidden">
+                                Preview
+                            </button>
+                            <button id="resetButton" class="action-btn bg-red-600 hover:bg-red-700">
+                                Reset
+                            </button>
+                            <button id="applyButton" class="action-btn bg-cyan-600 hover:bg-cyan-700">
+                                Apply
+                            </button>
+                            <button id="downloadButton" class="action-btn bg-green-600 hover:bg-green-700">
+                                Download
+                            </button>
                         </div>
                     </div>
-                </div>
 
-                <div class="xl:col-span-1">
-                    <div class="bg-black rounded-lg p-6 border border-white sticky top-8">
-                        <h2 class="text-xl font-semibold text-cyan-400 mb-6">Controls</h2>
-
-                        <div class="control-section">
-                            <h3 class="control-title">Preview</h3>
-                            <label class="toggle-container">
-                                <input type="checkbox" id="realtimePreviewToggle" class="toggle-input" checked>
-                                <span class="toggle-label">Real-time Preview</span>
-                            </label>
-                            <p class="text-xs text-white opacity-70 mt-2">Updates preview as you adjust settings</p>
-                        </div>
-
-                        <div class="control-section">
-                            <h3 class="control-title">Selected Color</h3>
-                            <div class="flex items-center space-x-3 mb-3">
-                                <div id="colorSwatch" class="w-12 h-12 border-2 border-white rounded-lg shadow-sm" style="background-color: #ffffff;"></div>
-                                <div class="flex-1">
-                                    <div class="flex items-center justify-between mb-1">
-                                        <span class="text-sm text-white">Hex: <span id="hexDisplay" class="text-cyan-400 font-mono">#FFFFFF</span></span>
-                                        <button id="copyHexButton" class="copy-btn" title="Copy hex value">Copy</button>
-                                    </div>
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-sm text-white">RGB: <span id="rgbDisplay" class="text-cyan-400 font-mono">rgb(255, 255, 255)</span></span>
-                                        <button id="copyRgbButton" class="copy-btn" title="Copy RGB value">Copy</button>
-                                    </div>
-                                    <div class="mt-2">
-                                        <span class="text-sm text-white">Resolution: <span id="resolutionDisplay" class="text-cyan-400 font-mono">No image</span></span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="control-section">
-                            <h3 class="control-title">Mode</h3>
-                            <div class="space-y-3">
-                                <label class="toggle-container">
-                                    <input type="checkbox" id="colorReplacementToggle" class="toggle-input">
-                                    <span class="toggle-label">Replace with Color</span>
-                                </label>
-                                <div id="colorPickerContainer" class="hidden pl-6">
-                                    <div class="flex items-center space-x-3">
-                                        <input type="color" id="replacementColorPicker" value="#ff0000" class="color-picker">
-                                        <span class="text-sm text-white">Color: <span id="replacementColorDisplay" class="text-cyan-400 font-mono">#FF0000</span></span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="control-section">
-                            <h3 class="control-title">Opacity</h3>
-                            <div class="slider-container">
-                                <input type="range" id="opacitySlider" min="0" max="1" step="0.01" value="0" class="custom-slider">
-                                <div class="flex justify-between text-xs text-white opacity-70 mt-1">
-                                    <span>0%</span>
-                                    <span>100%</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="control-section">
-                            <h3 class="control-title">Tolerance</h3>
-                            <label class="toggle-container">
-                                <input type="checkbox" id="toleranceToggle" class="toggle-input" checked>
-                                <span class="toggle-label">Enable Tolerance Mode</span>
-                            </label>
-                            <div id="toleranceSliderContainer" class="mt-3 pl-6">
-                                <div class="slider-container">
-                                    <label class="text-sm text-white mb-2 block">Strength</label>
-                                    <input type="range" id="toleranceStrengthSlider" min="0" max="100" step="1" value="20" class="custom-slider">
-                                    <div class="flex justify-between text-xs text-white opacity-70 mt-1">
-                                        <span>Low</span>
-                                        <span>High</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="control-section">
-                            <h3 class="control-title">Selection</h3>
-                            <label class="toggle-container">
-                                <input type="checkbox" id="invertSelectionToggle" class="toggle-input">
-                                <span class="toggle-label">Invert Selection</span>
-                            </label>
-                             <p class="text-xs text-white opacity-70 mt-2">Applies effect to all colors EXCEPT the selection.</p>
-                        </div>
-
-                        <div class="control-section">
-                            <h3 class="control-title">Edge Smoothing</h3>
-                            <label class="toggle-container">
-                                <input type="checkbox" id="antiAliasingToggle" class="toggle-input" checked>
-                                <span class="toggle-label">Enable Edge Smoothing</span>
-                            </label>
-                            <div id="smoothingSliderContainer" class="mt-3 pl-6">
-                                <div class="slider-container">
-                                    <label class="text-sm text-white mb-2 block">Factor</label>
-                                    <input type="range" id="smoothingFactorSlider" min="0.1" max="1.0" step="0.05" value="1.0" class="custom-slider">
-                                    <div class="flex justify-between text-xs text-white opacity-70 mt-1">
-                                        <span>Sharp</span>
-                                        <span>Smooth</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="canvas-container">
+                        <canvas id="imageCanvas" class="w-full h-auto"></canvas>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- GIF Editor Tab -->
-        <div id="gifEditorTab" class="editor-tab hidden">
-            <div class="grid grid-cols-1 xl:grid-cols-4 gap-8">
-                <div class="xl:col-span-3">
-                    <div class="bg-black rounded-lg p-6 border border-white">
-                        <div class="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
-                            <label for="gifUpload" class="custom-file-upload">
-                                Upload GIF
-                            </label>
-                            <input type="file" id="gifUpload" accept="image/gif">
+            <div class="xl:col-span-1">
+                <div class="bg-black rounded-lg p-6 border border-white sticky top-8">
+                    <h2 class="text-xl font-semibold text-cyan-400 mb-6">Controls</h2>
 
-                            <div class="flex gap-3 flex-wrap">
-                                <button id="gifPreviewButton" class="action-btn bg-purple-600 hover:bg-purple-700 hidden">
-                                    Preview Frame
-                                </button>
-                                <button id="gifRenderButton" class="action-btn bg-orange-600 hover:bg-orange-700">
-                                    Render Full GIF
-                                </button>
-                                <button id="gifResetButton" class="action-btn bg-red-600 hover:bg-red-700">
-                                    Reset
-                                </button>
-                                <button id="gifApplyButton" class="action-btn bg-cyan-600 hover:bg-cyan-700">
-                                    Apply
-                                </button>
-                                <button id="gifDownloadButton" class="action-btn bg-green-600 hover:bg-green-700">
-                                    Download GIF
-                                </button>
-                            </div>
-                        </div>
+                    <div class="control-section">
+                        <h3 class="control-title">Preview</h3>
+                        <label class="toggle-container">
+                            <input type="checkbox" id="realtimePreviewToggle" class="toggle-input" checked>
+                            <span class="toggle-label">Real-time Preview</span>
+                        </label>
+                        <p class="text-xs text-white opacity-70 mt-2">Updates preview as you adjust settings</p>
+                    </div>
 
-                        <!-- Frame Navigation -->
-                        <div class="mb-6 p-4 bg-gray-900 rounded-lg border border-white">
-                            <div class="flex items-center justify-between mb-3">
-                                <span class="text-sm text-white">Frame Navigation</span>
-                                <span class="text-xs text-cyan-400" id="frameInfo">No GIF loaded</span>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <button id="prevFrameButton" class="px-3 py-1 bg-gray-700 text-white rounded text-sm hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                                    ← Prev
-                                </button>
-                                <button id="nextFrameButton" class="px-3 py-1 bg-gray-700 text-white rounded text-sm hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                                    Next →
-                                </button>
-                                <div class="flex-1 mx-4">
-                                    <input type="range" id="frameSlider" min="0" max="0" value="0" class="w-full custom-slider" disabled>
+                    <div class="control-section">
+                        <h3 class="control-title">Selected Color</h3>
+                        <div class="flex items-center space-x-3 mb-3">
+                            <div id="colorSwatch" class="w-12 h-12 border-2 border-white rounded-lg shadow-sm" style="background-color: #ffffff;"></div>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between mb-1">
+                                    <span class="text-sm text-white">Hex: <span id="hexDisplay" class="text-cyan-400 font-mono">#FFFFFF</span></span>
+                                    <button id="copyHexButton" class="copy-btn" title="Copy hex value">Copy</button>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-white">RGB: <span id="rgbDisplay" class="text-cyan-400 font-mono">rgb(255, 255, 255)</span></span>
+                                    <button id="copyRgbButton" class="copy-btn" title="Copy RGB value">Copy</button>
+                                </div>
+                                <div class="mt-2">
+                                    <span class="text-sm text-white">Resolution: <span id="resolutionDisplay" class="text-cyan-400 font-mono">No image</span></span>
                                 </div>
                             </div>
-                        </div>
-
-                        <div class="canvas-container">
-                            <canvas id="gifCanvas" class="w-full h-auto"></canvas>
-                            <div id="gifPerformanceIndicator">Performance Mode</div>
-                            <div id="gifLoadingIndicator">Loading GIF...</div>
                         </div>
                     </div>
-                </div>
 
-                <div class="xl:col-span-1">
-                    <div class="bg-black rounded-lg p-6 border border-white sticky top-8">
-                        <h2 class="text-xl font-semibold text-cyan-400 mb-6">Controls</h2>
-
-                        <div class="control-section">
-                            <h3 class="control-title">Preview</h3>
+                    <div class="control-section">
+                        <h3 class="control-title">Mode</h3>
+                        <div class="space-y-3">
                             <label class="toggle-container">
-                                <input type="checkbox" id="gifRealtimePreviewToggle" class="toggle-input" checked>
-                                <span class="toggle-label">Real-time Preview</span>
+                                <input type="checkbox" id="colorReplacementToggle" class="toggle-input">
+                                <span class="toggle-label">Replace with Color</span>
                             </label>
-                            <p class="text-xs text-white opacity-70 mt-2">Updates current frame preview as you adjust settings</p>
-                        </div>
-
-                        <div class="control-section">
-                            <h3 class="control-title">Selected Color</h3>
-                            <div class="flex items-center space-x-3 mb-3">
-                                <div id="gifColorSwatch" class="w-12 h-12 border-2 border-white rounded-lg shadow-sm" style="background-color: #ffffff;"></div>
-                                <div class="flex-1">
-                                    <div class="flex items-center justify-between mb-1">
-                                        <span class="text-sm text-white">Hex: <span id="gifHexDisplay" class="text-cyan-400 font-mono">#FFFFFF</span></span>
-                                        <button id="gifCopyHexButton" class="copy-btn" title="Copy hex value">Copy</button>
-                                    </div>
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-sm text-white">RGB: <span id="gifRgbDisplay" class="text-cyan-400 font-mono">rgb(255, 255, 255)</span></span>
-                                        <button id="gifCopyRgbButton" class="copy-btn" title="Copy RGB value">Copy</button>
-                                    </div>
-                                    <div class="mt-2">
-                                        <span class="text-sm text-white">Resolution: <span id="gifResolutionDisplay" class="text-cyan-400 font-mono">No GIF</span></span>
-                                    </div>
+                            <div id="colorPickerContainer" class="hidden pl-6">
+                                <div class="flex items-center space-x-3">
+                                    <input type="color" id="replacementColorPicker" value="#ff0000" class="color-picker">
+                                    <span class="text-sm text-white">Color: <span id="replacementColorDisplay" class="text-cyan-400 font-mono">#FF0000</span></span>
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="control-section">
-                            <h3 class="control-title">Mode</h3>
-                            <div class="space-y-3">
-                                <label class="toggle-container">
-                                    <input type="checkbox" id="gifColorReplacementToggle" class="toggle-input">
-                                    <span class="toggle-label">Replace with Color</span>
-                                </label>
-                                <div id="gifColorPickerContainer" class="hidden pl-6">
-                                    <div class="flex items-center space-x-3">
-                                        <input type="color" id="gifReplacementColorPicker" value="#ff0000" class="color-picker">
-                                        <span class="text-sm text-white">Color: <span id="gifReplacementColorDisplay" class="text-cyan-400 font-mono">#FF0000</span></span>
-                                    </div>
-                                </div>
+                    <div class="control-section">
+                        <h3 class="control-title">Opacity</h3>
+                        <div class="slider-container">
+                            <input type="range" id="opacitySlider" min="0" max="1" step="0.01" value="0" class="custom-slider">
+                            <div class="flex justify-between text-xs text-white opacity-70 mt-1">
+                                <span>0%</span>
+                                <span>100%</span>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="control-section">
-                            <h3 class="control-title">Opacity</h3>
+                    <div class="control-section">
+                        <h3 class="control-title">Tolerance</h3>
+                        <label class="toggle-container">
+                            <input type="checkbox" id="toleranceToggle" class="toggle-input" checked>
+                            <span class="toggle-label">Enable Tolerance Mode</span>
+                        </label>
+                        <div id="toleranceSliderContainer" class="mt-3 pl-6">
                             <div class="slider-container">
-                                <input type="range" id="gifOpacitySlider" min="0" max="1" step="0.01" value="0" class="custom-slider">
+                                <label class="text-sm text-white mb-2 block">Strength</label>
+                                <input type="range" id="toleranceStrengthSlider" min="0" max="100" step="1" value="20" class="custom-slider">
                                 <div class="flex justify-between text-xs text-white opacity-70 mt-1">
-                                    <span>0%</span>
-                                    <span>100%</span>
+                                    <span>Low</span>
+                                    <span>High</span>
                                 </div>
                             </div>
                         </div>
+                    </div>
+                    
+                    <div class="control-section">
+                        <h3 class="control-title">Selection</h3>
+                        <label class="toggle-container">
+                            <input type="checkbox" id="invertSelectionToggle" class="toggle-input">
+                            <span class="toggle-label">Invert Selection</span>
+                        </label>
+                         <p class="text-xs text-white opacity-70 mt-2">Applies effect to all colors EXCEPT the selection.</p>
+                    </div>
 
-                        <div class="control-section">
-                            <h3 class="control-title">Tolerance</h3>
-                            <label class="toggle-container">
-                                <input type="checkbox" id="gifToleranceToggle" class="toggle-input" checked>
-                                <span class="toggle-label">Enable Tolerance Mode</span>
-                            </label>
-                            <div id="gifToleranceSliderContainer" class="mt-3 pl-6">
-                                <div class="slider-container">
-                                    <label class="text-sm text-white mb-2 block">Strength</label>
-                                    <input type="range" id="gifToleranceStrengthSlider" min="0" max="100" step="1" value="20" class="custom-slider">
-                                    <div class="flex justify-between text-xs text-white opacity-70 mt-1">
-                                        <span>Low</span>
-                                        <span>High</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="control-section">
-                            <h3 class="control-title">Selection</h3>
-                            <label class="toggle-container">
-                                <input type="checkbox" id="gifInvertSelectionToggle" class="toggle-input">
-                                <span class="toggle-label">Invert Selection</span>
-                            </label>
-                             <p class="text-xs text-white opacity-70 mt-2">Applies effect to all colors EXCEPT the selection.</p>
-                        </div>
-
-                        <div class="control-section">
-                            <h3 class="control-title">Edge Smoothing</h3>
-                            <label class="toggle-container">
-                                <input type="checkbox" id="gifAntiAliasingToggle" class="toggle-input" checked>
-                                <span class="toggle-label">Enable Edge Smoothing</span>
-                            </label>
-                            <div id="gifSmoothingSliderContainer" class="mt-3 pl-6">
-                                <div class="slider-container">
-                                    <label class="text-sm text-white mb-2 block">Factor</label>
-                                    <input type="range" id="gifSmoothingFactorSlider" min="0.1" max="1.0" step="0.05" value="1.0" class="custom-slider">
-                                    <div class="flex justify-between text-xs text-white opacity-70 mt-1">
-                                        <span>Sharp</span>
-                                        <span>Smooth</span>
-                                    </div>
+                    <div class="control-section">
+                        <h3 class="control-title">Edge Smoothing</h3>
+                        <label class="toggle-container">
+                            <input type="checkbox" id="antiAliasingToggle" class="toggle-input" checked>
+                            <span class="toggle-label">Enable Edge Smoothing</span>
+                        </label>
+                        <div id="smoothingSliderContainer" class="mt-3 pl-6">
+                            <div class="slider-container">
+                                <label class="text-sm text-white mb-2 block">Factor</label>
+                                <input type="range" id="smoothingFactorSlider" min="0.1" max="1.0" step="0.05" value="1.0" class="custom-slider">
+                                <div class="flex justify-between text-xs text-white opacity-70 mt-1">
+                                    <span>Sharp</span>
+                                    <span>Smooth</span>
                                 </div>
                             </div>
                         </div>
