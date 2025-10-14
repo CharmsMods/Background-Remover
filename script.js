@@ -65,6 +65,10 @@ const gifColorPickerContainer = document.getElementById('gifColorPickerContainer
 const gifReplacementColorPicker = document.getElementById('gifReplacementColorPicker');
 const gifReplacementColorDisplay = document.getElementById('gifReplacementColorDisplay');
 
+// Performance and loading indicators
+const gifPerformanceIndicator = document.getElementById('gifPerformanceIndicator');
+const gifLoadingIndicator = document.getElementById('gifLoadingIndicator');
+
 // Tab elements
 const imageTab = document.getElementById('imageTab');
 const gifTab = document.getElementById('gifTab');
@@ -596,23 +600,204 @@ function loadGif(event) {
         return;
     }
 
-    console.log('Loading GIF file:', file.name);
+    console.log('Loading GIF file:', file.name, 'Size:', file.size, 'Type:', file.type);
 
+    // Show loading indicator
+    gifLoadingIndicator.style.display = 'block';
+    gifLoadingIndicator.textContent = 'Reading file...';
+
+    // First, read as ArrayBuffer for GIF.js
     const reader = new FileReader();
     reader.onload = function (e) {
-        console.log('File loaded, trying multiple approaches...');
+        console.log('File loaded as ArrayBuffer, length:', e.target.result.byteLength);
+        gifLoadingIndicator.textContent = 'Processing GIF...';
 
-        // Try GIF.js approach first
-        tryGifJsApproach(e.target.result, file.name);
+        // Try GIF.js approach first with ArrayBuffer
+        tryGifJsApproachWithArrayBuffer(e.target.result, file.name);
     };
 
     reader.onerror = function (error) {
         console.error('File reading error:', error);
+        gifLoadingIndicator.style.display = 'none';
         showMessage('Error reading GIF file. Please try again.', 'error');
     };
 
-    console.log('Starting file read...');
-    reader.readAsDataURL(file); // Use DataURL for broader compatibility
+    console.log('Starting ArrayBuffer file read...');
+    reader.readAsArrayBuffer(file);
+}
+
+/**
+ * Try GIF.js approach for frame extraction using ArrayBuffer
+ */
+function tryGifJsApproachWithArrayBuffer(arrayBuffer, fileName) {
+    console.log('Trying GIF.js approach with ArrayBuffer...');
+
+    try {
+        // Create GIF with ArrayBuffer (this is what GIF.js expects)
+        const gif = new GIF(arrayBuffer);
+
+        console.log('GIF object created with ArrayBuffer');
+
+        // Add timeout for GIF.js loading (5 seconds)
+        const gifJsTimeout = setTimeout(() => {
+            console.log('GIF.js timeout after 5 seconds, trying fallback');
+            tryFallbackApproachWithUrl(arrayBuffer, fileName);
+        }, 5000);
+
+        gif.onload = function() {
+            clearTimeout(gifJsTimeout);
+            gifLoadingIndicator.textContent = 'Extracting frames...';
+            console.log('GIF.js loaded successfully!');
+            console.log('Raw frames data:', gif.frames);
+            console.log('Frames length:', gif.frames ? gif.frames.length : 'undefined');
+            console.log('Width:', gif.width, 'Height:', gif.height);
+            console.log('Frame delays:', gif.frames.map(f => f.delay));
+
+            if (!gif.frames || gif.frames.length === 0) {
+                console.log('No frames found in GIF.js, trying fallback');
+                gifLoadingIndicator.textContent = 'Switching to fallback...';
+                tryFallbackApproachWithUrl(arrayBuffer, fileName);
+                return;
+            }
+
+            // Check if frames have the expected structure
+            const firstFrame = gif.frames[0];
+            console.log('First frame structure:', Object.keys(firstFrame));
+            console.log('First frame image data:', firstFrame.image ? 'Has image data' : 'No image data');
+
+            processGifFramesFromGifJs(gif, fileName);
+        };
+
+        gif.onerror = function(error) {
+            clearTimeout(gifJsTimeout);
+            console.error('GIF.js error:', error);
+            console.log('Trying fallback approach...');
+            tryFallbackApproachWithUrl(arrayBuffer, fileName);
+        };
+
+    } catch (error) {
+        console.error('GIF.js creation error:', error);
+        console.log('Trying fallback approach...');
+        tryFallbackApproachWithUrl(arrayBuffer, fileName);
+    }
+}
+
+/**
+ * Process frames from GIF.js
+ */
+function processGifFramesFromGifJs(gif, fileName) {
+    console.log('Processing frames from GIF.js...');
+
+    gifFrameCount = gif.frames.length;
+    gifWidth = gif.width || 100;
+    gifHeight = gif.height || 100;
+
+    // Extract frame delays
+    if (gifFrameCount > 0 && gif.frames[0].delay !== undefined) {
+        gifFrameDelay = gif.frames[0].delay;
+    } else {
+        gifFrameDelay = 100;
+    }
+
+    console.log('Processing', gifFrameCount, 'frames with dimensions', gifWidth, 'x', gifHeight);
+
+    gifFrames = [];
+    originalGifFrames = [];
+
+    for (let i = 0; i < gifFrameCount; i++) {
+        const frame = gif.frames[i];
+        console.log('Processing frame', i, '- delay:', frame.delay);
+
+        try {
+            // Create canvas for this frame
+            const frameCanvas = document.createElement('canvas');
+            frameCanvas.width = gifWidth;
+            frameCanvas.height = gifHeight;
+            const frameCtx = frameCanvas.getContext('2d');
+
+            // Try to draw the frame
+            if (frame.image) {
+                console.log('Frame', i, 'has image data, putting to canvas');
+                frameCtx.putImageData(frame.image, 0, 0);
+            } else {
+                console.log('Frame', i, 'no image data, using fallback method');
+                // Try to use the main canvas
+                frameCtx.drawImage(gif.canvas, 0, 0);
+            }
+
+            // Get the frame data
+            const frameImageData = frameCtx.getImageData(0, 0, gifWidth, gifHeight);
+
+            gifFrames.push(frameImageData);
+            originalGifFrames.push(new ImageData(
+                new Uint8ClampedArray(frameImageData.data),
+                frameImageData.width,
+                frameImageData.height
+            ));
+
+            console.log('Frame', i, 'processed successfully, size:', frameImageData.data.length);
+        } catch (frameError) {
+            console.error('Error processing frame', i, ':', frameError);
+            showMessage(`Error processing frame ${i + 1}.`, 'error');
+            return;
+        }
+    }
+
+    console.log('All frames processed successfully, total frames:', gifFrames.length);
+
+    // Setup UI for multi-frame navigation
+    currentGifFrame = 0;
+    frameSlider.max = gifFrameCount - 1;
+    frameSlider.value = 0;
+    frameSlider.disabled = false;
+    prevFrameButton.disabled = false;
+    nextFrameButton.disabled = false;
+
+    // Display first frame
+    console.log('Displaying first frame on main canvas');
+    gifCanvas.width = gifWidth;
+    gifCanvas.height = gifHeight;
+
+    try {
+        gifCtx.putImageData(gifFrames[0], 0, 0);
+        console.log('First frame displayed successfully');
+    } catch (displayError) {
+        console.error('Error displaying frame:', displayError);
+        showMessage('Error displaying GIF frame.', 'error');
+        return;
+    }
+
+    // Update UI
+    gifResolutionDisplay.textContent = `${gifWidth} × ${gifHeight}`;
+    frameInfo.textContent = `Frame 1 of ${gifFrameCount}`;
+    gifHexDisplay.textContent = '#FFFFFF';
+    gifRgbDisplay.textContent = 'rgb(255, 255, 255)';
+    gifColorSwatch.style.backgroundColor = '#FFFFFF';
+
+    // Reset controls
+    gifSelectedColor = null;
+    gifOpacitySlider.value = 0;
+    gifToleranceToggle.checked = true;
+    gifToleranceSliderContainer.classList.remove('hidden');
+    gifToleranceStrengthSlider.value = 20;
+    gifInvertSelectionToggle.checked = false;
+    gifAntiAliasingToggle.checked = true;
+    gifSmoothingSliderContainer.classList.remove('hidden');
+    gifSmoothingFactorSlider.value = 1.0;
+    gifColorReplacementToggle.checked = false;
+    gifColorPickerContainer.classList.add('hidden');
+    gifReplacementColorPicker.value = '#ff0000';
+    gifReplacementColorDisplay.textContent = '#FF0000';
+    isGifRealtimePreviewEnabled = true;
+    gifRealtimePreviewToggle.checked = true;
+    gifRealtimePreviewToggle.classList.remove('disabled');
+    gifRealtimePreviewToggle.parentElement.classList.remove('disabled');
+    gifPreviewButton.classList.add('hidden');
+    gifPerformanceCheckCount = 0;
+    gifTotalProcessingTime = 0;
+    isGifPerformanceModeActive = false;
+
+    showMessage(`Animated GIF loaded with ${gifFrameCount} frames! Click on any frame to pick a color.`, 'success');
 }
 
 /**
@@ -660,21 +845,27 @@ function tryGifJsApproach(dataUrl, fileName) {
 }
 
 /**
- * Fallback approach using Image object
+ * Fallback approach using Image object with ArrayBuffer
  */
-function tryFallbackApproach(dataUrl, fileName) {
+function tryFallbackApproachWithUrl(arrayBuffer, fileName) {
     console.log('Using fallback approach with Image object...');
+
+    // Convert ArrayBuffer to data URL for Image loading
+    const blob = new Blob([arrayBuffer], { type: 'image/gif' });
+    const dataUrl = URL.createObjectURL(blob);
 
     const img = new Image();
 
     // Add timeout for image loading (5 seconds)
     const imageTimeout = setTimeout(() => {
         console.error('Image loading timeout');
+        URL.revokeObjectURL(dataUrl);
         showMessage('Error loading image. The file may be corrupted or too large.', 'error');
     }, 5000);
 
     img.onload = function() {
-        clearTimeout(imageTimeout); // Clear timeout if successful
+        clearTimeout(imageTimeout);
+        URL.revokeObjectURL(dataUrl); // Clean up the object URL
         console.log('Image loaded successfully');
         console.log('Width:', img.width, 'Height:', img.height);
         console.log('Natural width:', img.naturalWidth, 'Natural height:', img.naturalHeight);
@@ -764,12 +955,14 @@ function tryFallbackApproach(dataUrl, fileName) {
         } catch (canvasError) {
             console.error('Canvas operation error:', canvasError);
             clearTimeout(imageTimeout);
+            URL.revokeObjectURL(dataUrl);
             showMessage('Error processing image data.', 'error');
         }
     };
 
     img.onerror = function() {
         clearTimeout(imageTimeout);
+        URL.revokeObjectURL(dataUrl);
         console.error('Image loading failed');
         showMessage('Error loading image file. Please try a different file.', 'error');
     };
