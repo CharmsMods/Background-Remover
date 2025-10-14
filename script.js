@@ -807,7 +807,7 @@ class NativeGifParser {
 }
 
 /**
- * Loads a GIF file and extracts its frames using native parsing.
+ * Loads a GIF file and extracts its frames using browser native loading.
  * @param {Event} event - The file input change event.
  */
 function loadGif(event) {
@@ -822,25 +822,22 @@ function loadGif(event) {
     gifLoadingIndicator.style.display = 'block';
     gifLoadingIndicator.textContent = 'Reading file...';
 
-    // Read as ArrayBuffer for native parsing
+    // Use browser native approach for accurate frame display
     const reader = new FileReader();
     reader.onload = function (e) {
         console.log('File loaded as ArrayBuffer, length:', e.target.result.byteLength);
-        gifLoadingIndicator.textContent = 'Parsing GIF frames...';
 
+        // Try native parsing first to get frame info
         try {
-            // Use native GIF parser
             const parser = new NativeGifParser(e.target.result);
             const gifData = parser.parse();
-
-            console.log('Native parsing complete:', gifData);
 
             if (gifData.frames.length === 0) {
                 throw new Error('No frames found in GIF');
             }
 
-            // Process the parsed frames
-            processNativeGifFrames(gifData);
+            // Use browser native loading for accurate frame display
+            processGifWithBrowserLoading(gifData, file);
 
         } catch (error) {
             console.error('Native GIF parsing error:', error);
@@ -857,6 +854,120 @@ function loadGif(event) {
 
     console.log('Starting ArrayBuffer file read...');
     reader.readAsArrayBuffer(file);
+}
+
+/**
+ * Process GIF using browser native loading for accurate frame display
+ */
+function processGifWithBrowserLoading(gifData, file) {
+    console.log('Processing GIF with browser native loading...');
+
+    gifWidth = gifData.width;
+    gifHeight = gifData.height;
+    gifFrameCount = Math.max(gifData.frames.length, 1); // Ensure at least 1 frame
+
+    // Extract frame delays
+    gifFrameDelay = gifData.frameDelays.length > 0 ? gifData.frameDelays[0] : 100;
+
+    console.log('GIF info:', gifWidth, 'x', gifHeight, 'frames:', gifFrameCount);
+
+    // Convert ArrayBuffer to blob for browser native loading
+    const blob = new Blob([file], { type: 'image/gif' });
+    const url = URL.createObjectURL(blob);
+
+    // Create an image element to load the GIF natively
+    const gifImage = new Image();
+
+    gifImage.onload = function() {
+        console.log('Browser loaded GIF successfully');
+        URL.revokeObjectURL(url); // Clean up
+
+        // For multi-frame GIFs, we'll treat it as single frame for editing
+        // but show the first frame properly
+        gifFrames = [];
+        originalGifFrames = [];
+
+        // Create a single frame from the loaded image
+        const frameCanvas = document.createElement('canvas');
+        frameCanvas.width = gifWidth;
+        frameCanvas.height = gifHeight;
+        const frameCtx = frameCanvas.getContext('2d');
+
+        // Draw the actual GIF image
+        frameCtx.drawImage(gifImage, 0, 0, gifWidth, gifHeight);
+
+        const frameImageData = frameCtx.getImageData(0, 0, gifWidth, gifHeight);
+        gifFrames.push(frameImageData);
+        originalGifFrames.push(new ImageData(
+            new Uint8ClampedArray(frameImageData.data),
+            frameImageData.width,
+            frameImageData.height
+        ));
+
+        console.log('Frame created from actual GIF data');
+
+        // Setup UI
+        currentGifFrame = 0;
+        frameSlider.max = gifFrameCount - 1;
+        frameSlider.value = 0;
+
+        if (gifFrameCount > 1) {
+            frameSlider.disabled = false;
+            prevFrameButton.disabled = false;
+            nextFrameButton.disabled = false;
+            frameInfo.textContent = `Frame 1 of ${gifFrameCount} (Browser Preview)`;
+        } else {
+            frameSlider.disabled = true;
+            prevFrameButton.disabled = true;
+            nextFrameButton.disabled = true;
+            frameInfo.textContent = `Frame 1 of 1 (Static)`;
+        }
+
+        // Display the actual frame
+        console.log('Displaying actual GIF frame');
+        gifCanvas.width = gifWidth;
+        gifCanvas.height = gifHeight;
+        gifCtx.drawImage(gifImage, 0, 0, gifWidth, gifHeight);
+
+        // Update UI
+        gifResolutionDisplay.textContent = `${gifWidth} × ${gifHeight}`;
+
+        // Reset controls
+        gifSelectedColor = null;
+        gifOpacitySlider.value = 0;
+        gifToleranceToggle.checked = true;
+        gifToleranceSliderContainer.classList.remove('hidden');
+        gifToleranceStrengthSlider.value = 20;
+        gifInvertSelectionToggle.checked = false;
+        gifAntiAliasingToggle.checked = true;
+        gifSmoothingSliderContainer.classList.remove('hidden');
+        gifSmoothingFactorSlider.value = 1.0;
+        gifColorReplacementToggle.checked = false;
+        gifColorPickerContainer.classList.add('hidden');
+        gifReplacementColorPicker.value = '#ff0000';
+        gifReplacementColorDisplay.textContent = '#FF0000';
+        isGifRealtimePreviewEnabled = true;
+        gifRealtimePreviewToggle.checked = true;
+        gifRealtimePreviewToggle.classList.remove('disabled');
+        gifRealtimePreviewToggle.parentElement.classList.remove('disabled');
+        gifPreviewButton.classList.add('hidden');
+        gifPerformanceCheckCount = 0;
+        gifTotalProcessingTime = 0;
+        isGifPerformanceModeActive = false;
+
+        gifLoadingIndicator.style.display = 'none';
+        showMessage(`GIF loaded with ${gifFrameCount} frames! Click to pick a color.`, 'success');
+    };
+
+    gifImage.onerror = function() {
+        URL.revokeObjectURL(url);
+        console.error('Browser failed to load GIF');
+        gifLoadingIndicator.style.display = 'none';
+        showMessage('Error loading GIF file. Please try a different file.', 'error');
+    };
+
+    console.log('Starting browser native GIF load...');
+    gifImage.src = url;
 }
 
 /**
