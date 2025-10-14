@@ -32,6 +32,45 @@ const previewButton = document.getElementById('previewButton');
 const performanceWarning = document.getElementById('performance-warning');
 const dismissWarning = document.getElementById('dismiss-warning');
 
+// Get GIF editor DOM elements
+const gifUpload = document.getElementById('gifUpload');
+const gifCanvas = document.getElementById('gifCanvas');
+const gifCtx = gifCanvas.getContext('2d', { willReadFrequently: true });
+const gifPreviewButton = document.getElementById('gifPreviewButton');
+const gifRenderButton = document.getElementById('gifRenderButton');
+const gifResetButton = document.getElementById('gifResetButton');
+const gifApplyButton = document.getElementById('gifApplyButton');
+const gifDownloadButton = document.getElementById('gifDownloadButton');
+const frameSlider = document.getElementById('frameSlider');
+const prevFrameButton = document.getElementById('prevFrameButton');
+const nextFrameButton = document.getElementById('nextFrameButton');
+const frameInfo = document.getElementById('frameInfo');
+const gifRealtimePreviewToggle = document.getElementById('gifRealtimePreviewToggle');
+const gifHexDisplay = document.getElementById('gifHexDisplay');
+const gifRgbDisplay = document.getElementById('gifRgbDisplay');
+const gifResolutionDisplay = document.getElementById('gifResolutionDisplay');
+const gifColorSwatch = document.getElementById('gifColorSwatch');
+const gifCopyHexButton = document.getElementById('gifCopyHexButton');
+const gifCopyRgbButton = document.getElementById('gifCopyRgbButton');
+const gifOpacitySlider = document.getElementById('gifOpacitySlider');
+const gifToleranceToggle = document.getElementById('gifToleranceToggle');
+const gifToleranceSliderContainer = document.getElementById('gifToleranceSliderContainer');
+const gifToleranceStrengthSlider = document.getElementById('gifToleranceStrengthSlider');
+const gifInvertSelectionToggle = document.getElementById('gifInvertSelectionToggle');
+const gifAntiAliasingToggle = document.getElementById('gifAntiAliasingToggle');
+const gifSmoothingSliderContainer = document.getElementById('gifSmoothingSliderContainer');
+const gifSmoothingFactorSlider = document.getElementById('gifSmoothingFactorSlider');
+const gifColorReplacementToggle = document.getElementById('gifColorReplacementToggle');
+const gifColorPickerContainer = document.getElementById('gifColorPickerContainer');
+const gifReplacementColorPicker = document.getElementById('gifReplacementColorPicker');
+const gifReplacementColorDisplay = document.getElementById('gifReplacementColorDisplay');
+
+// Tab elements
+const imageTab = document.getElementById('imageTab');
+const gifTab = document.getElementById('gifTab');
+const imageEditorTab = document.getElementById('imageEditorTab');
+const gifEditorTab = document.getElementById('gifEditorTab');
+
 // Global variables to store image data and selected color
 let originalImage = new Image();
 let originalImageData = null;
@@ -523,6 +562,832 @@ realtimePreviewToggle.addEventListener('change', () => toggleRealtimePreview(rea
 previewButton.addEventListener('click', () => applyFilter(true));
 dismissWarning.addEventListener('click', () => hidePerformanceWarning());
 
+/**
+ * Switches between Image and GIF editor tabs.
+ * @param {string} tab - 'image' or 'gif'
+ */
+function switchTab(tab) {
+    if (tab === 'image') {
+        imageTab.classList.add('active');
+        gifTab.classList.remove('active');
+        imageEditorTab.classList.remove('hidden');
+        gifEditorTab.classList.add('hidden');
+
+        // Reset image editor state if needed
+        resetImage();
+    } else if (tab === 'gif') {
+        imageTab.classList.remove('active');
+        gifTab.classList.add('active');
+        imageEditorTab.classList.add('hidden');
+        gifEditorTab.classList.remove('hidden');
+
+        // Reset GIF editor state if needed
+        resetGif();
+    }
+}
+
+/**
+ * Loads a GIF file and extracts its frames.
+ * @param {Event} event - The file input change event.
+ */
+function loadGif(event) {
+    const file = event.target.files[0];
+    if (!file) {
+        return;
+    }
+
+    console.log('Loading GIF file:', file.name);
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        console.log('File loaded, trying multiple approaches...');
+
+        // Try GIF.js approach first
+        tryGifJsApproach(e.target.result, file.name);
+    };
+
+    reader.onerror = function (error) {
+        console.error('File reading error:', error);
+        showMessage('Error reading GIF file. Please try again.', 'error');
+    };
+
+    console.log('Starting file read...');
+    reader.readAsDataURL(file); // Use DataURL for broader compatibility
+}
+
+/**
+ * Try GIF.js approach for frame extraction
+ */
+function tryGifJsApproach(dataUrl, fileName) {
+    console.log('Trying GIF.js approach...');
+
+    try {
+        const gif = new GIF(dataUrl);
+
+        // Add timeout for GIF.js loading (3 seconds)
+        const gifJsTimeout = setTimeout(() => {
+            console.log('GIF.js timeout, switching to fallback');
+            tryFallbackApproach(dataUrl, fileName);
+        }, 3000);
+
+        gif.onload = function() {
+            clearTimeout(gifJsTimeout); // Clear timeout if successful
+            console.log('GIF.js loaded successfully');
+            console.log('Frames:', gif.frames ? gif.frames.length : 'No frames');
+            console.log('Width:', gif.width, 'Height:', gif.height);
+
+            if (!gif.frames || gif.frames.length === 0) {
+                console.log('No frames found, trying fallback approach');
+                tryFallbackApproach(dataUrl, fileName);
+                return;
+            }
+
+            processGifFrames(gif, fileName);
+        };
+
+        gif.onerror = function(error) {
+            clearTimeout(gifJsTimeout); // Clear timeout on error
+            console.error('GIF.js error:', error);
+            console.log('Trying fallback approach...');
+            tryFallbackApproach(dataUrl, fileName);
+        };
+
+    } catch (error) {
+        console.error('GIF.js creation error:', error);
+        console.log('Trying fallback approach...');
+        tryFallbackApproach(dataUrl, fileName);
+    }
+}
+
+/**
+ * Fallback approach using Image object
+ */
+function tryFallbackApproach(dataUrl, fileName) {
+    console.log('Using fallback approach with Image object...');
+
+    const img = new Image();
+
+    // Add timeout for image loading (5 seconds)
+    const imageTimeout = setTimeout(() => {
+        console.error('Image loading timeout');
+        showMessage('Error loading image. The file may be corrupted or too large.', 'error');
+    }, 5000);
+
+    img.onload = function() {
+        clearTimeout(imageTimeout); // Clear timeout if successful
+        console.log('Image loaded successfully');
+        console.log('Width:', img.width, 'Height:', img.height);
+        console.log('Natural width:', img.naturalWidth, 'Natural height:', img.naturalHeight);
+
+        if (img.width === 0 || img.height === 0) {
+            console.error('Image has no dimensions');
+            showMessage('Error: Image has no valid dimensions.', 'error');
+            return;
+        }
+
+        // For fallback, treat as single frame
+        gifWidth = img.width || img.naturalWidth;
+        gifHeight = img.height || img.naturalHeight;
+        gifFrameCount = 1;
+        gifFrameDelay = 100;
+
+        console.log('Setting up single frame display...');
+
+        // Create single frame
+        const frameCanvas = document.createElement('canvas');
+        frameCanvas.width = gifWidth;
+        frameCanvas.height = gifHeight;
+        const frameCtx = frameCanvas.getContext('2d');
+
+        try {
+            frameCtx.drawImage(img, 0, 0, gifWidth, gifHeight);
+
+            const frameImageData = frameCtx.getImageData(0, 0, gifWidth, gifHeight);
+
+            gifFrames = [frameImageData];
+            originalGifFrames = [new ImageData(
+                new Uint8ClampedArray(frameImageData.data),
+                frameImageData.width,
+                frameImageData.height
+            )];
+
+            console.log('Frame data created successfully');
+
+            // Setup UI
+            currentGifFrame = 0;
+            frameSlider.max = 0;
+            frameSlider.value = 0;
+            frameSlider.disabled = true;
+            prevFrameButton.disabled = true;
+            nextFrameButton.disabled = true;
+
+            // Display frame
+            console.log('Setting canvas dimensions:', gifWidth, 'x', gifHeight);
+            gifCanvas.width = gifWidth;
+            gifCanvas.height = gifHeight;
+
+            console.log('Drawing image to canvas...');
+            gifCtx.drawImage(img, 0, 0, gifWidth, gifHeight);
+
+            // Update UI
+            gifResolutionDisplay.textContent = `${gifWidth} × ${gifHeight}`;
+            frameInfo.textContent = `Frame 1 of 1 (Static)`;
+            gifHexDisplay.textContent = '#FFFFFF';
+            gifRgbDisplay.textContent = 'rgb(255, 255, 255)';
+            gifColorSwatch.style.backgroundColor = '#FFFFFF';
+
+            // Reset controls
+            gifSelectedColor = null;
+            gifOpacitySlider.value = 0;
+            gifToleranceToggle.checked = true;
+            gifToleranceSliderContainer.classList.remove('hidden');
+            gifToleranceStrengthSlider.value = 20;
+            gifInvertSelectionToggle.checked = false;
+            gifAntiAliasingToggle.checked = true;
+            gifSmoothingSliderContainer.classList.remove('hidden');
+            gifSmoothingFactorSlider.value = 1.0;
+            gifColorReplacementToggle.checked = false;
+            gifColorPickerContainer.classList.add('hidden');
+            gifReplacementColorPicker.value = '#ff0000';
+            gifReplacementColorDisplay.textContent = '#FF0000';
+            isGifRealtimePreviewEnabled = true;
+            gifRealtimePreviewToggle.checked = true;
+            gifRealtimePreviewToggle.classList.remove('disabled');
+            gifRealtimePreviewToggle.parentElement.classList.remove('disabled');
+            gifPreviewButton.classList.add('hidden');
+            gifPerformanceCheckCount = 0;
+            gifTotalProcessingTime = 0;
+            isGifPerformanceModeActive = false;
+
+            console.log('UI setup complete');
+            showMessage(`Image loaded successfully! Click to pick a color.`, 'success');
+        } catch (canvasError) {
+            console.error('Canvas operation error:', canvasError);
+            clearTimeout(imageTimeout);
+            showMessage('Error processing image data.', 'error');
+        }
+    };
+
+    img.onerror = function() {
+        clearTimeout(imageTimeout);
+        console.error('Image loading failed');
+        showMessage('Error loading image file. Please try a different file.', 'error');
+    };
+
+    console.log('Starting image load...');
+    img.src = dataUrl;
+}
+
+/**
+ * Process frames from GIF.js
+ */
+function processGifFrames(gif, fileName) {
+    console.log('Processing frames from GIF.js...');
+
+    gifFrameCount = gif.frames.length;
+    gifWidth = gif.width || 100;
+    gifHeight = gif.height || 100;
+
+    // Extract frame delays
+    if (gifFrameCount > 0 && gif.frames[0].delay !== undefined) {
+        gifFrameDelay = gif.frames[0].delay;
+    } else {
+        gifFrameDelay = 100;
+    }
+
+    console.log('Processing', gifFrameCount, 'frames...');
+
+    gifFrames = [];
+    originalGifFrames = [];
+
+    for (let i = 0; i < gifFrameCount; i++) {
+        const frame = gif.frames[i];
+
+        const frameCanvas = document.createElement('canvas');
+        frameCanvas.width = gifWidth;
+        frameCanvas.height = gifHeight;
+        const frameCtx = frameCanvas.getContext('2d');
+
+        try {
+            if (frame.image) {
+                frameCtx.putImageData(frame.image, 0, 0);
+            } else {
+                frameCtx.drawImage(gif.canvas, 0, 0);
+            }
+
+            const frameImageData = frameCtx.getImageData(0, 0, gifWidth, gifHeight);
+            gifFrames.push(frameImageData);
+            originalGifFrames.push(new ImageData(
+                new Uint8ClampedArray(frameImageData.data),
+                frameImageData.width,
+                frameImageData.height
+            ));
+
+            console.log('Frame', i, 'processed');
+        } catch (frameError) {
+            console.error('Error processing frame', i, ':', frameError);
+            showMessage(`Error processing frame ${i + 1}.`, 'error');
+            return;
+        }
+    }
+
+    console.log('All frames processed successfully');
+
+    // Setup UI
+    currentGifFrame = 0;
+    frameSlider.max = gifFrameCount - 1;
+    frameSlider.value = 0;
+    frameSlider.disabled = false;
+    prevFrameButton.disabled = false;
+    nextFrameButton.disabled = false;
+
+    // Display first frame
+    gifCanvas.width = gifWidth;
+    gifCanvas.height = gifHeight;
+    gifCtx.putImageData(gifFrames[0], 0, 0);
+
+    // Update UI
+    gifResolutionDisplay.textContent = `${gifWidth} × ${gifHeight}`;
+    frameInfo.textContent = `Frame 1 of ${gifFrameCount}`;
+    gifHexDisplay.textContent = '#FFFFFF';
+    gifRgbDisplay.textContent = 'rgb(255, 255, 255)';
+    gifColorSwatch.style.backgroundColor = '#FFFFFF';
+
+    // Reset controls
+    gifSelectedColor = null;
+    gifOpacitySlider.value = 0;
+    gifToleranceToggle.checked = true;
+    gifToleranceSliderContainer.classList.remove('hidden');
+    gifToleranceStrengthSlider.value = 20;
+    gifInvertSelectionToggle.checked = false;
+    gifAntiAliasingToggle.checked = true;
+    gifSmoothingSliderContainer.classList.remove('hidden');
+    gifSmoothingFactorSlider.value = 1.0;
+    gifColorReplacementToggle.checked = false;
+    gifColorPickerContainer.classList.add('hidden');
+    gifReplacementColorPicker.value = '#ff0000';
+    gifReplacementColorDisplay.textContent = '#FF0000';
+    isGifRealtimePreviewEnabled = true;
+    gifRealtimePreviewToggle.checked = true;
+    gifRealtimePreviewToggle.classList.remove('disabled');
+    gifRealtimePreviewToggle.parentElement.classList.remove('disabled');
+    gifPreviewButton.classList.add('hidden');
+    gifPerformanceCheckCount = 0;
+    gifTotalProcessingTime = 0;
+    isGifPerformanceModeActive = false;
+
+    showMessage(`Animated GIF loaded with ${gifFrameCount} frames! Click on any frame to pick a color.`, 'success');
+}
+
+/**
+ * Displays a specific frame of the GIF.
+ * @param {number} frameIndex - The index of the frame to display.
+ */
+function displayGifFrame(frameIndex) {
+    if (frameIndex < 0 || frameIndex >= gifFrameCount || gifFrames.length === 0) {
+        return;
+    }
+
+    currentGifFrame = frameIndex;
+    gifCanvas.width = gifWidth;
+    gifCanvas.height = gifHeight;
+    gifCtx.putImageData(gifFrames[frameIndex], 0, 0);
+
+    frameSlider.value = frameIndex;
+    frameInfo.textContent = `Frame ${frameIndex + 1} of ${gifFrameCount}`;
+
+    // Update navigation buttons
+    prevFrameButton.disabled = frameIndex === 0;
+    nextFrameButton.disabled = frameIndex === gifFrameCount - 1;
+}
+
+/**
+ * Navigates to the previous frame.
+ */
+function previousFrame() {
+    if (currentGifFrame > 0) {
+        displayGifFrame(currentGifFrame - 1);
+    }
+}
+
+/**
+ * Navigates to the next frame.
+ */
+function nextFrame() {
+    if (currentGifFrame < gifFrameCount - 1) {
+        displayGifFrame(currentGifFrame + 1);
+    }
+}
+
+/**
+ * Picks a color from the current GIF frame at the clicked coordinates.
+ * @param {Event} event - The mouse click event on the canvas.
+ */
+function pickGifColor(event) {
+    if (gifFrames.length === 0) {
+        showMessage('Please upload a GIF first.', 'info');
+        return;
+    }
+
+    const rect = gifCanvas.getBoundingClientRect();
+    const scaleX = gifCanvas.width / rect.width;
+    const scaleY = gifCanvas.height / rect.height;
+    const x = Math.floor((event.clientX - rect.left) * scaleX);
+    const y = Math.floor((event.clientY - rect.top) * scaleY);
+
+    const pixel = gifCtx.getImageData(x, y, 1, 1).data;
+    gifSelectedColor = { r: pixel[0], g: pixel[1], b: pixel[2] };
+
+    gifHexDisplay.textContent = rgbToHex(gifSelectedColor.r, gifSelectedColor.g, gifSelectedColor.b);
+    gifRgbDisplay.textContent = `rgb(${gifSelectedColor.r}, ${gifSelectedColor.g}, ${gifSelectedColor.b})`;
+    gifColorSwatch.style.backgroundColor = `rgb(${gifSelectedColor.r}, ${gifSelectedColor.g}, ${gifSelectedColor.b})`;
+
+    applyGifFilter(true);
+    showMessage('Color picked! Adjust opacity or toggle tolerance.', 'info');
+}
+
+/**
+ * Applies the color filter to the current frame only (for real-time preview).
+ * @param {boolean} forceUpdate - Force update even if real-time preview is disabled
+ */
+function applyGifFilter(forceUpdate = false) {
+    if (!isGifRealtimePreviewEnabled && !forceUpdate) {
+        return;
+    }
+
+    const startTime = performance.now();
+    if (gifFrames.length === 0 || !gifSelectedColor) {
+        if (gifFrames.length > 0) {
+            displayGifFrame(currentGifFrame);
+        }
+        return;
+    }
+
+    const currentFrameData = gifFrames[currentGifFrame];
+    const imageData = new ImageData(
+        new Uint8ClampedArray(currentFrameData.data),
+        currentFrameData.width,
+        currentFrameData.height
+    );
+    const data = imageData.data;
+    const sliderVal = parseFloat(gifOpacitySlider.value);
+    const isToleranceMode = gifToleranceToggle.checked;
+    const isInverted = gifInvertSelectionToggle.checked;
+    const currentToleranceRadius = parseFloat(gifToleranceStrengthSlider.value);
+    const isColorReplacement = gifColorReplacementToggle.checked;
+    const replacementColor = isColorReplacement ? hexToRgb(gifReplacementColorPicker.value) : null;
+    const isAntiAliasing = gifAntiAliasingToggle.checked;
+
+    for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        const originalAlpha = data[i + 3];
+
+        const currentPixelColor = { r, g, b };
+        const distance = isToleranceMode
+            ? colorDistance(gifSelectedColor, currentPixelColor)
+            : (r === gifSelectedColor.r && g === gifSelectedColor.g && b === gifSelectedColor.b ? 0 : Infinity);
+
+        let effectFactor = 0; // Represents how much of the effect (0 to 1) to apply.
+
+        if (isToleranceMode) {
+            if (distance <= currentToleranceRadius) {
+                // Pixel is INSIDE the tolerance radius
+                if (isAntiAliasing && currentToleranceRadius > 0) {
+                    const smoothingFactor = parseFloat(gifSmoothingFactorSlider.value);
+                    const fadeZone = currentToleranceRadius * smoothingFactor;
+                    const coreZone = currentToleranceRadius - fadeZone;
+
+                    if (distance <= coreZone) {
+                        effectFactor = isInverted ? 0 : 1;
+                    } else {
+                        const fadeProgress = (distance - coreZone) / fadeZone;
+                        const smoothProgress = smoothInterpolation(fadeProgress, smoothingFactor);
+                        effectFactor = isInverted ? smoothProgress : (1 - smoothProgress);
+                    }
+                } else {
+                    effectFactor = isInverted ? 0 : 1;
+                }
+            } else {
+                // Pixel is OUTSIDE the tolerance radius
+                effectFactor = isInverted ? 1 : 0;
+            }
+        } else { // No tolerance mode, only exact match
+            effectFactor = (distance === 0) ? (isInverted ? 0 : 1) : (isInverted ? 1 : 0);
+        }
+
+        // Apply the effect based on the calculated effectFactor
+        if (effectFactor > 0) {
+            if (isColorReplacement) {
+                data[i] = Math.round(r + (replacementColor.r - r) * effectFactor);
+                data[i + 1] = Math.round(g + (replacementColor.g - g) * effectFactor);
+                data[i + 2] = Math.round(b + (replacementColor.b - b) * effectFactor);
+                data[i + 3] = originalAlpha;
+            } else { // Transparency mode
+                const correctedOpacity = applyOpacityGamma(sliderVal);
+                data[i + 3] = originalAlpha * (1 - (correctedOpacity * effectFactor));
+            }
+        } else {
+            // No effect, keep original pixel
+            data[i + 3] = originalAlpha;
+        }
+    }
+
+    gifCtx.putImageData(imageData, 0, 0);
+
+    const endTime = performance.now();
+    const processingTime = endTime - startTime;
+
+    if (isGifRealtimePreviewEnabled && !forceUpdate) {
+        gifPerformanceCheckCount++;
+        gifTotalProcessingTime += processingTime;
+
+        if (processingTime > 750) {
+            showGifPerformanceWarning();
+        } else if (gifPerformanceCheckCount >= 2) {
+            const averageTime = gifTotalProcessingTime / gifPerformanceCheckCount;
+            if (averageTime > 750) {
+                showGifPerformanceWarning();
+            }
+            gifPerformanceCheckCount = 0;
+            gifTotalProcessingTime = 0;
+        }
+    }
+}
+
+/**
+ * Renders the full GIF with all effects applied to all frames.
+ */
+function renderFullGif() {
+    if (gifFrames.length === 0 || !gifSelectedColor) {
+        showMessage('Please upload a GIF and select a color first.', 'info');
+        return;
+    }
+
+    showMessage(`Processing all ${gifFrameCount} frames... This may take a moment for large GIFs.`, 'info');
+
+    // Process all frames with current settings
+    for (let frameIndex = 0; frameIndex < gifFrameCount; frameIndex++) {
+        processGifFrame(frameIndex);
+    }
+
+    // Show a preview of the first processed frame
+    gifCanvas.width = gifWidth;
+    gifCanvas.height = gifHeight;
+    gifCtx.putImageData(gifFrames[0], 0, 0);
+
+    showMessage(`Full GIF rendered successfully! ${gifFrameCount} frames processed. You can now download the animated GIF.`, 'success');
+}
+
+/**
+ * Processes a single frame of the GIF with all effects applied.
+ * @param {number} frameIndex - The index of the frame to process.
+ */
+function processGifFrame(frameIndex) {
+    if (frameIndex < 0 || frameIndex >= gifFrameCount) {
+        return;
+    }
+
+    const frameData = originalGifFrames[frameIndex];
+    const imageData = new ImageData(
+        new Uint8ClampedArray(frameData.data),
+        frameData.width,
+        frameData.height
+    );
+    const data = imageData.data;
+    const sliderVal = parseFloat(gifOpacitySlider.value);
+    const isToleranceMode = gifToleranceToggle.checked;
+    const isInverted = gifInvertSelectionToggle.checked;
+    const currentToleranceRadius = parseFloat(gifToleranceStrengthSlider.value);
+    const isColorReplacement = gifColorReplacementToggle.checked;
+    const replacementColor = isColorReplacement ? hexToRgb(gifReplacementColorPicker.value) : null;
+    const isAntiAliasing = gifAntiAliasingToggle.checked;
+
+    for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        const originalAlpha = data[i + 3];
+
+        const currentPixelColor = { r, g, b };
+        const distance = isToleranceMode
+            ? colorDistance(gifSelectedColor, currentPixelColor)
+            : (r === gifSelectedColor.r && g === gifSelectedColor.g && b === gifSelectedColor.b ? 0 : Infinity);
+
+        let effectFactor = 0;
+
+        if (isToleranceMode) {
+            if (distance <= currentToleranceRadius) {
+                if (isAntiAliasing && currentToleranceRadius > 0) {
+                    const smoothingFactor = parseFloat(gifSmoothingFactorSlider.value);
+                    const fadeZone = currentToleranceRadius * smoothingFactor;
+                    const coreZone = currentToleranceRadius - fadeZone;
+
+                    if (distance <= coreZone) {
+                        effectFactor = isInverted ? 0 : 1;
+                    } else {
+                        const fadeProgress = (distance - coreZone) / fadeZone;
+                        const smoothProgress = smoothInterpolation(fadeProgress, smoothingFactor);
+                        effectFactor = isInverted ? smoothProgress : (1 - smoothProgress);
+                    }
+                } else {
+                    effectFactor = isInverted ? 0 : 1;
+                }
+            } else {
+                effectFactor = isInverted ? 1 : 0;
+            }
+        } else {
+            effectFactor = (distance === 0) ? (isInverted ? 0 : 1) : (isInverted ? 1 : 0);
+        }
+
+        if (effectFactor > 0) {
+            if (isColorReplacement) {
+                data[i] = Math.round(r + (replacementColor.r - r) * effectFactor);
+                data[i + 1] = Math.round(g + (replacementColor.g - g) * effectFactor);
+                data[i + 2] = Math.round(b + (replacementColor.b - b) * effectFactor);
+                data[i + 3] = originalAlpha;
+            } else {
+                const correctedOpacity = applyOpacityGamma(sliderVal);
+                data[i + 3] = originalAlpha * (1 - (correctedOpacity * effectFactor));
+            }
+        } else {
+            data[i + 3] = originalAlpha;
+        }
+    }
+
+    gifFrames[frameIndex] = imageData;
+}
+
+/**
+ * Downloads the processed GIF.
+ */
+function downloadGif() {
+    if (gifFrames.length === 0) {
+        showMessage('Please upload and edit a GIF first to download.', 'info');
+        return;
+    }
+
+    showMessage('Generating animated GIF for download...', 'info');
+
+    // Create a new GIF with processed frames
+    const gif = new GIF({
+        workers: 2,
+        quality: 10,
+        width: gifWidth,
+        height: gifHeight,
+        workerScript: 'https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js'
+    });
+
+    // Add all processed frames with their original delays
+    for (let i = 0; i < gifFrameCount; i++) {
+        const frameCanvas = document.createElement('canvas');
+        frameCanvas.width = gifWidth;
+        frameCanvas.height = gifHeight;
+        const frameCtx = frameCanvas.getContext('2d');
+
+        // Draw the processed frame data
+        frameCtx.putImageData(gifFrames[i], 0, 0);
+
+        // Add frame with delay (use original delay or default)
+        const frameDelay = gifFrameDelay > 0 ? gifFrameDelay : 100;
+        gif.addFrame(frameCanvas, { delay: frameDelay });
+    }
+
+    gif.on('finished', function(blob) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'edited-gif.gif';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showMessage(`Animated GIF downloaded successfully! (${gifFrameCount} frames)`, 'success');
+    });
+
+    gif.on('error', function(error) {
+        console.error('GIF creation error:', error);
+        showMessage('Error creating GIF. Please try again.', 'error');
+    });
+
+    gif.render();
+}
+
+/**
+ * Resets the GIF editor to its initial state.
+ */
+function resetGif() {
+    gifFrames = [];
+    originalGifFrames = [];
+    currentGifFrame = 0;
+    gifFrameCount = 0;
+    gifWidth = 0;
+    gifHeight = 0;
+    gifFrameDelay = 0;
+    gifSelectedColor = null;
+
+    // Reset UI
+    gifCanvas.width = 600;
+    gifCanvas.height = 400;
+    gifCtx.fillStyle = '#e2e8f0';
+    gifCtx.fillRect(0, 0, gifCanvas.width, gifCanvas.height);
+    gifCtx.font = '24px Inter';
+    gifCtx.textAlign = 'center';
+    gifCtx.fillStyle = '#64748b';
+    gifCtx.fillText('Upload a GIF to get started', gifCanvas.width / 2, gifCanvas.height / 2);
+
+    frameSlider.value = 0;
+    frameSlider.disabled = true;
+    prevFrameButton.disabled = true;
+    nextFrameButton.disabled = true;
+    frameInfo.textContent = 'No GIF loaded';
+
+    gifResolutionDisplay.textContent = 'No GIF';
+    gifHexDisplay.textContent = '#FFFFFF';
+    gifRgbDisplay.textContent = 'rgb(255, 255, 255)';
+    gifColorSwatch.style.backgroundColor = '#FFFFFF';
+
+    // Reset controls
+    gifOpacitySlider.value = 0;
+    gifToleranceToggle.checked = true;
+    gifToleranceSliderContainer.classList.remove('hidden');
+    gifToleranceStrengthSlider.value = 20;
+    gifInvertSelectionToggle.checked = false;
+    gifAntiAliasingToggle.checked = true;
+    gifSmoothingSliderContainer.classList.remove('hidden');
+    gifSmoothingFactorSlider.value = 1.0;
+    gifColorReplacementToggle.checked = false;
+    gifColorPickerContainer.classList.add('hidden');
+    gifReplacementColorPicker.value = '#ff0000';
+    gifReplacementColorDisplay.textContent = '#FF0000';
+    isGifRealtimePreviewEnabled = true;
+    gifRealtimePreviewToggle.checked = true;
+    gifRealtimePreviewToggle.classList.remove('disabled');
+    gifRealtimePreviewToggle.parentElement.classList.remove('disabled');
+    gifPreviewButton.classList.add('hidden');
+    gifPerformanceCheckCount = 0;
+    gifTotalProcessingTime = 0;
+    isGifPerformanceModeActive = false;
+
+    showMessage('GIF editor reset.', 'info');
+}
+
+/**
+ * Applies current edits to all frames and saves as new base frames.
+ */
+function applyGifChanges() {
+    if (gifFrames.length === 0) {
+        showMessage('Please upload a GIF first.', 'info');
+        return;
+    }
+
+    // Process all frames with current settings
+    for (let frameIndex = 0; frameIndex < gifFrameCount; frameIndex++) {
+        processGifFrame(frameIndex);
+    }
+
+    // Update original frames to current processed state
+    for (let i = 0; i < gifFrameCount; i++) {
+        originalGifFrames[i] = new ImageData(
+            new Uint8ClampedArray(gifFrames[i].data),
+            gifFrames[i].width,
+            gifFrames[i].height
+        );
+    }
+
+    // Reset controls
+    gifSelectedColor = null;
+    gifOpacitySlider.value = 0;
+    gifToleranceToggle.checked = true;
+    gifToleranceSliderContainer.classList.remove('hidden');
+    gifToleranceStrengthSlider.value = 20;
+    gifInvertSelectionToggle.checked = false;
+    gifAntiAliasingToggle.checked = true;
+    gifSmoothingSliderContainer.classList.remove('hidden');
+    gifSmoothingFactorSlider.value = 1.0;
+    gifColorReplacementToggle.checked = false;
+    gifColorPickerContainer.classList.add('hidden');
+    gifReplacementColorPicker.value = '#ff0000';
+    gifReplacementColorDisplay.textContent = '#FF0000';
+    isGifRealtimePreviewEnabled = true;
+    gifRealtimePreviewToggle.checked = true;
+    gifRealtimePreviewToggle.classList.remove('disabled');
+    gifRealtimePreviewToggle.parentElement.classList.remove('disabled');
+    gifPreviewButton.classList.add('hidden');
+    gifPerformanceCheckCount = 0;
+    gifTotalProcessingTime = 0;
+    isGifPerformanceModeActive = false;
+    gifHexDisplay.textContent = '#FFFFFF';
+    gifRgbDisplay.textContent = 'rgb(255, 255, 255)';
+    gifColorSwatch.style.backgroundColor = '#FFFFFF';
+
+    showMessage('Current edits applied to all frames! You can now pick a new color on the modified GIF.', 'success');
+}
+
+function showGifPerformanceWarning() {
+    if (!isGifPerformanceModeActive) {
+        isGifPerformanceModeActive = true;
+        isGifRealtimePreviewEnabled = false;
+        gifRealtimePreviewToggle.checked = false;
+        gifRealtimePreviewToggle.classList.add('disabled');
+        gifRealtimePreviewToggle.parentElement.classList.add('disabled');
+        gifPreviewButton.classList.remove('hidden');
+        showMessage('Real-time preview disabled due to performance', 'info');
+    }
+}
+
+// Tab switching event listeners
+imageTab.addEventListener('click', () => switchTab('image'));
+gifTab.addEventListener('click', () => switchTab('gif'));
+
+// GIF editor event listeners
+gifUpload.addEventListener('change', loadGif);
+gifCanvas.addEventListener('click', pickGifColor);
+frameSlider.addEventListener('input', (e) => displayGifFrame(parseInt(e.target.value)));
+prevFrameButton.addEventListener('click', previousFrame);
+nextFrameButton.addEventListener('click', nextFrame);
+gifOpacitySlider.addEventListener('input', () => { if (isGifRealtimePreviewEnabled) applyGifFilter(); });
+gifToleranceToggle.addEventListener('change', () => {
+    gifToleranceSliderContainer.classList.toggle('hidden', !gifToleranceToggle.checked);
+    if (isGifRealtimePreviewEnabled) applyGifFilter();
+});
+gifToleranceStrengthSlider.addEventListener('input', () => { if (isGifRealtimePreviewEnabled) applyGifFilter(); });
+gifInvertSelectionToggle.addEventListener('change', () => { if (isGifRealtimePreviewEnabled) applyGifFilter(); });
+gifAntiAliasingToggle.addEventListener('change', () => {
+    gifSmoothingSliderContainer.classList.toggle('hidden', !gifAntiAliasingToggle.checked);
+    if (isGifRealtimePreviewEnabled) applyGifFilter();
+});
+gifSmoothingFactorSlider.addEventListener('input', () => { if (isGifRealtimePreviewEnabled) applyGifFilter(); });
+gifResetButton.addEventListener('click', resetGif);
+gifDownloadButton.addEventListener('click', downloadGif);
+gifApplyButton.addEventListener('click', applyGifChanges);
+gifCopyHexButton.addEventListener('click', () => copyToClipboard(gifHexDisplay.textContent, 'Hex'));
+gifCopyRgbButton.addEventListener('click', () => copyToClipboard(gifRgbDisplay.textContent, 'RGB'));
+gifColorReplacementToggle.addEventListener('change', () => {
+    gifColorPickerContainer.classList.toggle('hidden', !gifColorReplacementToggle.checked);
+    if (isGifRealtimePreviewEnabled) applyGifFilter();
+});
+gifReplacementColorPicker.addEventListener('input', () => {
+    gifReplacementColorDisplay.textContent = gifReplacementColorPicker.value.toUpperCase();
+    if (isGifRealtimePreviewEnabled) applyGifFilter();
+});
+gifRealtimePreviewToggle.addEventListener('change', () => {
+    isGifRealtimePreviewEnabled = gifRealtimePreviewToggle.checked;
+    if (isGifRealtimePreviewEnabled) {
+        gifPreviewButton.classList.add('hidden');
+        gifRealtimePreviewToggle.classList.remove('disabled');
+        gifRealtimePreviewToggle.parentElement.classList.remove('disabled');
+        gifPerformanceCheckCount = 0;
+        gifTotalProcessingTime = 0;
+        isGifPerformanceModeActive = false;
+    } else {
+        gifPreviewButton.classList.remove('hidden');
+    }
+});
+gifPreviewButton.addEventListener('click', () => applyGifFilter(true));
+gifRenderButton.addEventListener('click', renderFullGif);
+
 // Initial state
 window.onload = () => {
     if (!originalImage.src) {
@@ -535,4 +1400,14 @@ window.onload = () => {
         ctx.fillStyle = '#64748b';
         ctx.fillText('Upload an image to get started', imageCanvas.width / 2, imageCanvas.height / 2);
     }
+
+    // Initialize GIF canvas with default state
+    gifCanvas.width = 600;
+    gifCanvas.height = 400;
+    gifCtx.fillStyle = '#e2e8f0';
+    gifCtx.fillRect(0, 0, gifCanvas.width, gifCanvas.height);
+    gifCtx.font = '24px Inter';
+    gifCtx.textAlign = 'center';
+    gifCtx.fillStyle = '#64748b';
+    gifCtx.fillText('Upload a GIF to get started', gifCanvas.width / 2, gifCanvas.height / 2);
 };
